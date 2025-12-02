@@ -12,9 +12,9 @@ Linux :
 - Télécharger l'archive suivante : [Exécutable Linux](https://github.com/dimitri2401/generateur_taches/releases/download/v0.1/Linux-executable.zip)
 - La décompresser.
 
-MacOS (exécutable non testé) : [Exécutable MacOS](https://github.com/dimitri2401/generateur_taches/releases/download/v0.1/MacOS-executable.zip)
+MacOS (exécutable non testé)
 
-- Télécharger l'archive suivante
+- Télécharger l'archive suivante : [Exécutable MacOS](https://github.com/dimitri2401/generateur_taches/releases/download/v0.1/MacOS-executable.zip)
 - La décompresser.
 
 #### Code source Python
