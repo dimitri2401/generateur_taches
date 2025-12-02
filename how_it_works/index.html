@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="fr" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Comment ça fonctionne - Générateur de tâches - Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../mystyle.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Comment \u00e7a fonctionne";
+        var mkdocs_page_input_path = "how_it_works.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Générateur de tâches - Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Rechercher des documents" aria-label="Rechercher des documents" title="Tapez vos mots clés ici" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Menu de navigation">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Accueil</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../usage/">Utilisation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../configuration/">Configuration</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Comment ça fonctionne</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#rappel-sur-la-signification-des-preferences-dans-le-logiciel-de-la-tache-deric-et-le-nouveau">Rappel sur la signification des préférences (dans le logiciel de la tâche d'Éric et le nouveau)</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#quessaie-de-faire-ce-logiciel">Qu'essaie de faire ce logiciel</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../about/">À propos</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../licenses/">Licences</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Menu de navigation sur mobile">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Générateur de tâches - Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Documents"></a></li>
+      <li class="breadcrumb-item active">Comment ça fonctionne</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="comment-ca-fonctionne">Comment ça fonctionne ?</h2>
+<p>Le générateur utilise le logiciel <code>HiGHS</code> (via la librairie Python <code>pulp</code>) afin de produire des tâches. <code>HiGHS</code> est un logiciel libre conçu pour résoudre des modèles de programmation linéaire et de programmation mixte en nombres entiers.</p>
+<p>Le problème de la tâche peut être approché comme un problème de programmation mixte en nombres entiers en définissant judicieusement la fonction objectif.</p>
+<h3 id="rappel-sur-la-signification-des-preferences-dans-le-logiciel-de-la-tache-deric-et-le-nouveau">Rappel sur la signification des préférences (dans le logiciel de la tâche d'Éric et le nouveau)</h3>
+<p>Si <script type="math/tex"> p </script> dénote la préférence exprimée par le professeur <script type="math/tex"> i </script> pour le cours <script type="math/tex"> j </script> dans le fichier de préférences, on définit la préférence pénalisée au carré <script type="math/tex"> pref(i,j) </script> (aussi appelée ppc) par :
+<script type="math/tex; mode=display">
+ppc = pref(i,j) = 1 - \frac{(2 - p)^2}{12} - \frac{(2 - p)}{6}
+</script>
+</p>
+<p>Le tableau ci-dessous donne explicitement la correspondance entre la préférence exprimée dans le fichier (entre -2 et 2) et la préférence pénalisée au carré, utilisée dans l'optimisation (donc <script type="math/tex"> pref(i,j)  </script>, la ppc):</p>
+<table>
+<thead>
+<tr>
+<th>Préférence exprimée</th>
+<th>-2</th>
+<th>-1</th>
+<th>0</th>
+<th>1</th>
+<th>2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ppc</td>
+<td>-1</td>
+<td>-1/4</td>
+<td>1/3</td>
+<td>3/4</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Remarque :</strong> l'idée derrière la préférence pénalisée au carré et pénaliser plus fortement les préférences négatives, afin de motiver l'attribution de préférences exprimées positives ou nulles lors de l'optimisation.</p>
+<p>Pour un professeur <script type="math/tex"> i </script>, la préférence personnelle telle qu'affichée dans les scénarios de tâches est la moyenne, pondérée sur le nombre d'heures enseignées, des <script type="math/tex"> pref(i,j) </script> :
+$$
+\frac{1}{\text{nbr tot d'heures enseignées par le prof $i$}} \sum_{\text{cours } j} \text{nbr d'heures du cours $j$ enseignées} \times pref(i,j)
+$$</p>
+<h3 id="quessaie-de-faire-ce-logiciel">Qu'essaie de faire ce logiciel</h3>
+<p>Un problème de programmation linéaire consiste à optimiser (ici maximiser) <strong>une seule</strong> fonction objectif <strong>linéaire</strong> sous certaines contraintes. A priori, la tâche consiste à optimiser <strong>plusieurs</strong> fonctions (les préférences de chaque professeur) <strong>non linéaires</strong> (à cause de la division par le nombre d'heures totales enseignées).</p>
+<p>Il est toutefois possible d'approximer le problème de façon raisonnable en définissant comme fonction objectif la fonction linéaire suivante (ou une variante de cette fonction, selon les options activées):
+$$
+\sum_{\text{prof } i} \sum_{\text{cours } j} \text{nbr d'heures du cours $j$ enseignées} \times pref(i,j)
+$$</p>
+<p>Il s'agit donc d'optimiser la préférence globale (et pas totalement pondérée) des préférences. Atteindre l'optimalité dans cet objectif aboutit généralement à une maximisation des termes de la somme (et donc des préférences individuelles).</p>
+<p>Une série d'options permet de changer les critères d'optimisation (tenter de maximiser également le minimum des préférences, de prendre en compte les libérations, de ne pas prendre en compte la durée des cours, etc.).</p>
+<p><strong>Remarques :</strong></p>
+<ul>
+<li>Il est possible, mais beaucoup trop coûteux calculatoirement, de définir une fonction essentiellement égale à la véritable fonction à optimiser. Les résultats obtenus ne sont alors pas vraiment meilleurs.</li>
+<li>Il est très simple de changer la fonction objectif, afin de maximiser selon d'autres critères.</li>
+</ul>
+<p>Il reste ensuite simplement à définir les contraintes (intervalles de CI, nombre de préparations maximum, etc) et de laisser <code>HiGHS</code> résoudre le problème.</p>
+<p>L'avantage majeur de cette approche pour résoudre le problème de la tâche est sa rapidité (quelques secondes) avant d'atteindre une solution optimale. <code>HiGHS</code> permet de plus de savoir presque instantanément si le problème est réellement résoluble sous les contraintes imposées.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Navigation de pied de page">
+        <a href="../configuration/" class="btn btn-neutral float-left" title="Configuration"><span class="icon icon-circle-arrow-left"></span> Précédent</a>
+        <a href="../about/" class="btn btn-neutral float-right" title="À propos">Suivant <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Générée avec <a href="https://www.mkdocs.org/">MkDocs</a> avec un <a href="https://github.com/readthedocs/sphinx_rtd_theme">thème</a> fourni par <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/dimitri2401/generateur_taches/" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../configuration/" style="color: #fcfcfc">&laquo; Précédent</a></span>
+    
+    
+      <span><a href="../about/" style="color: #fcfcfc">Suivant &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="fr" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Configuration - Générateur de tâches - Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../mystyle.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Configuration";
+        var mkdocs_page_input_path = "configuration.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Générateur de tâches - Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Rechercher des documents" aria-label="Rechercher des documents" title="Tapez vos mots clés ici" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Menu de navigation">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Accueil</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../usage/">Utilisation</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Configuration</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#fichier-de-configuration">Fichier de configuration :</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#fichiers-dentree-sortie-files">Fichiers d'entrée / sortie (files)</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#parametres-doptimisation-optimization">Paramètres d'optimisation (optimization)</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#conseils-pour-les-parametres-doptimisation">Conseils pour les paramètres d'optimisation</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#generation-de-taches-alternatives-taches_alternatives">Génération de tâches alternatives (taches_alternatives)</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#usage-typique">Usage typique</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#parametres-du-solveur-solver">Paramètres du solveur (solver)</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#recommandations-pour-les-parametres-du-solveur">Recommandations pour les paramètres du solveur</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#exemple-dun-fichier-configyaml-valide">Exemple d'un fichier config.yaml valide</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../how_it_works/">Comment ça fonctionne</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../about/">À propos</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../licenses/">Licences</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Menu de navigation sur mobile">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Générateur de tâches - Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Documents"></a></li>
+      <li class="breadcrumb-item active">Configuration</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="parametres-de-configuration-du-generateur-de-taches">Paramètres de configuration du générateur de tâches</h2>
+<p><strong>Remarque :</strong> les paramètres disponibles sont voués à être ajustés ou à disparaître au fil des expérimentations.</p>
+<h3 id="fichier-de-configuration">Fichier de configuration :</h3>
+<p>Ce document décrit les paramètres disponibles dans le fichier de configuration <code>config.yaml</code> du générateur de tâches et explique leur effet. Le fichier de configuration peut être ouvert avec un éditeur de texte.</p>
+<p><strong>Important :</strong> ne supprimer aucune entrée du fichier de configuration.</p>
+<h3 id="fichiers-dentree-sortie-files">Fichiers d'entrée / sortie (<code>files</code>)</h3>
+<ul>
+<li><strong><code>input</code></strong> : nom du fichier contenant les paramètres de la tâche, avec son extension (par ex. <code>tache.xls</code>). C'est le fichier Excel lu par le générateur, contenant les informations sur les professeurs, les cours, les préférences, les nombres de groupes, etc.</li>
+<li><strong><code>output</code></strong> : nom du fichier de sortie, sans extension (par ex. <code>resultat_tache</code>). Si le fichier existe déjà dans le répertoire (dû à une exécution préalable du logiciel par exemple), le logiciel renommera le nouveau fichier en lui attachant un numéro.</li>
+</ul>
+<h3 id="parametres-doptimisation-optimization">Paramètres d'optimisation (<code>optimization</code>)</h3>
+<p>Les premiers paramètres permettent de définir la fonction objectif à maximiser. La fonction servant de base (mais qui n'est généralement pas le meilleur choix) est donnée par :
+$$
+\sum_{\text{prof } i} \sum_{\text{cours } j} \text{nbr de groupes du cours $j$ attribués} \times pref(i , j)
+$$</p>
+<p>Les différents paramètres permettent de modifier cette fonction et ces paramètres peuvent être combinés.</p>
+<p>Ci-dessous sont listées les valeurs possibles et leur signification.</p>
+<ul>
+<li><strong><code>hours_enabled</code></strong> : <code>True</code>/<code>False</code>. Pondérer la préférence pour un cours par le nombre d'heures de ce cours. Chaque terme à l'intérieur de la fonction objectif est ainsi multiplié par la durée du cours. C'est généralement une bonne chose de l'activer, car cette option simule bien la moyenne des préférences exprimées dans les scénarios.</li>
+<li><strong><code>liberation_enabled</code></strong> : <code>True</code>/<code>False</code>. Essaie de simuler l'effet des libérations. Les professeurs libérés ayant moins de groupes ou d'heures, leur préférence a parfois un peu moins de poids dans le total. Chaque terme à l'intérieur de la fonction objectif est ainsi divisé par le pourcentage de libération du professeur.</li>
+<li><strong><code>min_cours_enabled</code></strong> : <code>True</code>/<code>False</code>. Ajoute la préférence minimale pour un cours attribué à la fonction objectif un certain nombre de fois (définit par <code>nbr_min_count</code>). En donnant plus de poids au minimum, l'idée est d'encourager la maximisation de la pire des préférences pour un cours attribué. <strong>Remarque :</strong> cette option ne peut pas être activée en même temps que la suivante.</li>
+<li><strong><code>min_prof_enabled</code></strong> : <code>True</code>/<code>False</code>. Ajoute la préférence minimale parmi l'ensemble des professeurs à la fonction objectif un certain nombre de fois (définit par <code>nbr_min_count</code>). En donnant plus de poids au minimum, l'idée est d'encourager la maximisation de la préférence la plus basse parmi les professeurs. <strong>Remarque :</strong> cette option ne peut pas être activée en même temps que la précédente.</li>
+<li><strong><code>nbr_min_count</code></strong> : nombre entier strictement positif. Le nombre de fois que le minimum est ajouté à la fonction objectif si <code>min_enabled</code> est <code>True</code>.</li>
+</ul>
+<p><strong>Remarque :</strong> il n'existe a priori pas de meilleure combinaison de ces paramètres et il faut les ajuster au fil des expérimentations.</p>
+<ul>
+<li>
+<p><strong><code>allow_negative_preferences</code></strong> : <code>True</code>/<code>False</code>. Si <code>False</code>, aucun professeur ne peut se voir attribuer un cours sur lequel il a mis une préférence négative. Attention, désactiver cette option pourrait rendre la tâche impossible à générer.</p>
+</li>
+<li>
+<p><strong><code>enforce_positive_with_negative</code></strong> : <code>True</code>/<code>False</code>. Si <code>True</code>, s'assure que si un professeur se voit attribuer un cours avec une préférence négative, il ait au moins une préférence positive aussi élevée pour compenser (empêche d'attribuer uniquement des négatifs sans contrepartie).</p>
+</li>
+<li>
+<p><strong><code>max_hours</code></strong> : nombre entier. Limite supérieure du nombre d'heures attribuées à chaque professeur (par ex. <code>14</code>).</p>
+</li>
+</ul>
+<h5 id="conseils-pour-les-parametres-doptimisation">Conseils pour les paramètres d'optimisation</h5>
+<ul>
+<li>Essayer les différents paramètres d'optimisations. Il est difficile de prévoir lequel sera le plus efficace a priori. Certains paramètres peuvent toutefois allonger la durée de la résolution.</li>
+<li>Essayer de générer des tâches sans préférences négatives <code>allow_negative_preferences = False</code>. Si elles s'avèrent décevantes, autoriser les négatifs. Dans ce cas, essayer aussi d'activer <code>enforce_positive_with_negative</code>.</li>
+</ul>
+<h3 id="generation-de-taches-alternatives-taches_alternatives">Génération de tâches alternatives (<code>taches_alternatives</code>)</h3>
+<ul>
+<li><strong><code>epsilon_strategy</code></strong> : <code>True</code>/<code>False</code>. Si <code>True</code>, le générateur génère <code>nbr_taches_alternatives</code> tâches supplémentaires presque optimales. Pour ce faire, il relance l'optimiseur en imposant la contrainte <code>fonction objectif ≤ fonction objectif atteinte précédente - ɛ</code>, avec  <code>epsilon_value</code> défini ci-dessous.</li>
+<li><strong><code>epsilon_value</code></strong> : nombre réel positif (par ex. <code>0.0001</code>). Valeur du epsilon utilisée pour réduire le maximum de la fonction objectif.</li>
+<li><strong><code>nbr_taches_alternatives</code></strong> : nombre entier strictement positif. Nombre de solutions alternatives à générer (par ex. <code>3</code>).</li>
+</ul>
+<h5 id="usage-typique">Usage typique</h5>
+<ul>
+<li>Désactiver dans un premier temps les tâches alternatives, donc <code>epsilon_strategy = False</code> et changer les paramètres du fichier de tâche jusqu'à obtenir une tâche satisfaisante.</li>
+<li>Ensuite seulement, générer des alternatives quasi-optimales.</li>
+<li>Remarque : les tâches alternatives sont généralement plus longues à générer. </li>
+</ul>
+<h3 id="parametres-du-solveur-solver">Paramètres du solveur (<code>solver</code>)</h3>
+<ul>
+<li><strong><code>time_limit</code></strong> : temps limite en secondes pour le solveur (pr ex. <code>240</code>). Après ce temps, le solveur retourne une solution (potentiellement très) non-optimale.</li>
+<li><strong><code>afficher_log</code></strong> : <code>True</code>/<code>False</code>. Afficher les logs du solveur dans le terminal.</li>
+<li><strong><code>sauvegarder_log</code></strong> : <code>True</code>/<code>False</code>. Sauvegarder les logs du solveur dans un fichier.</li>
+<li><strong><code>fichier_log</code></strong> : nom du fichier log si <code>sauvegarder_log</code> est <code>True</code> (par ex. <code>log.txt</code>).</li>
+</ul>
+<h5 id="recommandations-pour-les-parametres-du-solveur">Recommandations pour les paramètres du solveur</h5>
+<ul>
+<li>Si les tâches sont trop longues à produire, augmenter le <code>time_limit</code> ou relâcher certaines contraintes (dans le fichier de paramètres ou, par exemple, en activant <code>allow_negative_preferences</code>).</li>
+<li>Si le logiciel est exécuté dans un terminal, il est généralement informatif d'activer <code>afficher_log</code>, mais peu utile d'activer <code>sauvegarder_log</code>.</li>
+</ul>
+<h3 id="exemple-dun-fichier-configyaml-valide">Exemple d'un fichier <code>config.yaml</code> valide</h3>
+<pre><code>
+# Configuration pour le générateur de tâches
+
+# Fichiers d'entrée/sortie
+files:
+  input: &quot;tache.xls&quot;
+  output: &quot;resultat_tache&quot; # Sans extension, sera ajoutée automatiquement
+
+# Paramètres d'optimisation
+optimization:
+  # Fonction objectif - Facteurs à inclure
+  # Pondérer la préférence pour un cours par le nombre d'heures de ce cours
+  hours_enabled: True
+
+  # Tenter de prendre en compte les libérations (plus utile si hours_enabled est True)
+  liberation_enabled: False
+
+  # Tenter de maximiser également le minimum des préférences
+  # Attention : ne pas activer les deux options en même temps
+  min_cours_enabled: True # Cherche à augmenter la pire des préférences parmi l'ensemble des cours attribués
+  min_prof_enabled: False # Chercher à augmenter la pire des préférences parmi l'ensemble des professeurs
+
+  # Si l'une des deux options précédentes est activée, nombre de fois que le minimum est compté dans la fonction objectif.
+  nbr_min_count: 10
+
+  # Autoriser l'attribution de cours pour lesquels une préférence négative a été donnée.
+  allow_negative_preferences: False
+
+  # Si un professeur a une préférence négative pour un cours attribué, s'assurer qu'il dispose également d'une préférence positive de valeur au moins équivalente.
+  enforce_positive_with_negative: False
+
+  # Nombre d'heures maximum par professeur
+  max_hours: 14
+
+# Génération de tâches alternatives
+taches_alternatives:
+  # Utiliser un epsilon pour générer des tâches alternatives
+  epsilon_strategy: True
+  epsilon_value: 0.0001
+
+  # Nombre de solutions alternatives à générer
+  nbr_taches_alternatives: 2
+
+# Paramètres du solveur
+solver:
+  # Limite de temps en secondes
+  time_limit: 240
+
+  # Log
+  afficher_log: True
+  sauvegarder_log: False
+  fichier_log: &quot;log.txt&quot;
+
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Navigation de pied de page">
+        <a href="../usage/" class="btn btn-neutral float-left" title="Utilisation"><span class="icon icon-circle-arrow-left"></span> Précédent</a>
+        <a href="../how_it_works/" class="btn btn-neutral float-right" title="Comment ça fonctionne">Suivant <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Générée avec <a href="https://www.mkdocs.org/">MkDocs</a> avec un <a href="https://github.com/readthedocs/sphinx_rtd_theme">thème</a> fourni par <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/dimitri2401/generateur_taches/" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../usage/" style="color: #fcfcfc">&laquo; Précédent</a></span>
+    
+    
+      <span><a href="../how_it_works/" style="color: #fcfcfc">Suivant &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

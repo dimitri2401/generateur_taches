@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="fr" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="description" content="None" />
+      <link rel="shortcut icon" href="img/favicon.ico" />
+    <title>Générateur de tâches - Documentation</title>
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="mystyle.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Accueil";
+        var mkdocs_page_input_path = "index.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="." class="icon icon-home"> Générateur de tâches - Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
+      <input type="text" name="q" placeholder="Rechercher des documents" aria-label="Rechercher des documents" title="Tapez vos mots clés ici" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Menu de navigation">
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Accueil</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#informations-generales">Informations générales</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#licence">Licence</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="usage/">Utilisation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="configuration/">Configuration</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="how_it_works/">Comment ça fonctionne</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="about/">À propos</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="licenses/">Licences</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Menu de navigation sur mobile">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href=".">Générateur de tâches - Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="." class="icon icon-home" aria-label="Documents"></a></li>
+      <li class="breadcrumb-item active">Accueil</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h2 id="generateur-de-taches">Générateur de tâches</h2>
+<h3 id="informations-generales">Informations générales</h3>
+<p>Ce logiciel propose une approche alternative à celle utilisée habituellement au département de mathématiques du Collège Montmorency (aussi connue sous le nom de « le logiciel d'Éric »). Il repose sur des principes d'optimisation linéaire, dans le but d'obtenir plus efficacement des tâches.</p>
+<p>Cette approche offre certains avantages :</p>
+<ul>
+<li><strong>Rapidité :</strong> la solution dite « optimale » (voir la nuance dans l'inconvénient ci‑dessous) est généralement atteinte en quelques secondes. Plusieurs solutions quasi‑optimales peuvent ensuite être produites très rapidement.</li>
+<li><strong>Faisabilité :</strong> si les contraintes rendent la tâche impossible, le logiciel le signale presque instantanément.</li>
+<li><strong>Facilité d'itération :</strong> l'itération est simplifiée, permettant de tester rapidement l'effet des différents paramètres de la tâche qui peuvent être modifiés.</li>
+<li><strong>Flexibilité :</strong> il est simple de définir de nouvelles contraintes (par exemple, n'avoir aucun prof à -1).</li>
+</ul>
+<p>Bien évidemment, cette nouvelle approche n'est pas parfaite et s'accompagne de quelques inconvénients, notamment :</p>
+<ul>
+<li><strong>Approximation :</strong> le modèle résolu est une approximation du problème réel de la tâche. La solution n'est donc pas parfaitement optimale. Néanmoins, dans la pratique, les résultats obtenus sont souvent au moins aussi bons que ceux du logiciel d'Éric.</li>
+<li><strong>Nouveauté :</strong> ce logiciel ayant été testé seulement sur un petit nombre de tâches (contrairement à l'ancien logiciel qui aura bientôt 20 ans), des problèmes inattendus subsistent certainement encore.</li>
+</ul>
+<p>L'idée n'est donc pas de remplacer l'ancienne façon de procéder, mais de l'accompagner.</p>
+<h3 id="licence">Licence</h3>
+<p>Le code source de ce logiciel est distribué sous licence <strong>GPLv3</strong>. Vous êtes donc encouragé à le modifier, à condition de respecter les termes de la licence. Plus d'informations sur la page <a href="about/">À propos</a></p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Navigation de pied de page">
+        <a href="installation/" class="btn btn-neutral float-right" title="Installation">Suivant <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Générée avec <a href="https://www.mkdocs.org/">MkDocs</a> avec un <a href="https://github.com/readthedocs/sphinx_rtd_theme">thème</a> fourni par <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/dimitri2401/generateur_taches/" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+    
+      <span><a href="installation/" style="color: #fcfcfc">Suivant &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = ".";</script>
+    <script src="js/theme_extra.js"></script>
+    <script src="js/theme.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script src="search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
+
+<!--
+MkDocs version : 1.6.1
+Build Date UTC : 2025-12-02 03:37:40.619366+00:00
+-->
