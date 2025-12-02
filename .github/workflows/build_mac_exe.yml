@@ -41,5 +41,4 @@ jobs:
         name: MacOS-executable
         path: |
           dist/*
-          config.yaml
         # Upload contents of dist/ at root level
