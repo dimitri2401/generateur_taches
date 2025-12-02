@@ -1,0 +1,24 @@
+site_name: Générateur de tâches - Documentation
+repo_url: https://github.com/dimitri2401/generateur_taches/
+edit_uri: ""
+
+nav:
+  - Accueil: index.md
+  - Installation: installation.md
+  - Utilisation: usage.md
+  - Configuration: configuration.md
+  - Comment ça fonctionne: how_it_works.md
+  - À propos: about.md
+  - Licences: licenses.md
+
+theme:
+  name: readthedocs
+  locale: fr
+
+extra_javascript:
+  - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS-MML_HTMLorMML
+markdown_extensions:
+  - mdx_math
+
+extra_css:
+  - mystyle.css

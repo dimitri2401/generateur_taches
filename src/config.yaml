@@ -1,0 +1,51 @@
+# Configuration pour le générateur de tâches
+
+# Fichiers d'entrée/sortie
+files:
+  input: "tache.xls"
+  output: "resultat_tache" # Sans extension, sera ajoutée automatiquement
+
+# Paramètres d'optimisation
+optimization:
+  # Fonction objectif - Facteurs à inclure
+  # Pondérer la préférence pour un cours par le nombre d'heures de ce cours
+  hours_enabled: True
+
+  # Tenter de prendre en compte les libérations (plus utile si hours_enabled est True)
+  liberation_enabled: False
+
+  # Tenter de maximiser également le minimum des préférences
+  # Attention : ne pas activer les deux options en même temps
+  min_cours_enabled: True # Cherche à augmenter la pire des préférences parmi l'ensemble des cours attribués
+  min_prof_enabled: False # Chercher à augmenter la pire des préférences parmi l'ensemble des professeurs
+  
+  # Si l'une des deux options précédentes est activée, nombre de fois que le minimum est compté dans la fonction objectif.
+  nbr_min_count: 10
+
+  # Autoriser l'attribution de cours pour lesquels une préférence négative a été donnée.
+  allow_negative_preferences: False
+
+  # Si un professeur a une préférence négative pour un cours attribué, s'assurer qu'il dispose également d'une préférence positive de valeur au moins équivalente.
+  enforce_positive_with_negative: False
+  
+  # Nombre d'heures maximum par professeur
+  max_hours: 14
+
+# Génération de tâches alternatives
+taches_alternatives:
+  # Utiliser un epsilon pour générer des tâches alternatives
+  epsilon_strategy: True
+  epsilon_value: 0.0001
+
+  # Nombre de solutions alternatives à générer
+  nbr_taches_alternatives: 2
+
+# Paramètres du solveur
+solver:
+  # Limite de temps en secondes
+  time_limit: 240
+
+  # Log
+  afficher_log: True
+  sauvegarder_log: False
+  fichier_log: "log.txt"

@@ -1,0 +1,44 @@
+name: Build Windows Executable
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    # Use a Windows runner environment
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        # Specify your desired Python version
+        python-version: '3.14'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # Install PyInstaller and your project's requirements
+        pip install pyinstaller
+        pip install -r requirements.txt
+
+    - name: Build with PyInstaller
+      run: |
+        # Run PyInstaller on your main script or .spec file
+        pyinstaller generateur_taches_onefile.spec
+
+    - name: Copy config.yaml
+      run: |
+        copy src\config.yaml dist\
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Windows-executable
+        path: |
+          dist/*
+        # Upload contents of dist/ at root level
