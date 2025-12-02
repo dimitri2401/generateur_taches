@@ -42,6 +42,6 @@ Une série d'options permet de changer les critères d'optimisation (tenter de m
 - Il est possible, mais beaucoup trop coûteux calculatoirement, de définir une fonction essentiellement égale à la véritable fonction à optimiser. Les résultats obtenus ne sont alors pas vraiment meilleurs.
 - Il est très simple de changer la fonction objectif, afin de maximiser selon d'autres critères.
 
-Il reste ensuite simplement à définir les contraintes (intervalles de CI, nombre de préparations maximum, etc) et de laisser `HiGHS` résoudre le problème.
+Il reste ensuite simplement à définir les contraintes (intervalles de CI, nombre de préparations maximum, etc) et à laisser `HiGHS` résoudre le problème.
 
 L'avantage majeur de cette approche pour résoudre le problème de la tâche est sa rapidité (quelques secondes) avant d'atteindre une solution optimale. `HiGHS` permet de plus de savoir presque instantanément si le problème est réellement résoluble sous les contraintes imposées.
