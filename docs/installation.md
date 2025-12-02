@@ -4,15 +4,15 @@
 
 Windows :
 
-- Télécharger l'archive suivante
+- Télécharger l'archive suivante : [Exécutable Windows](https://github.com/dimitri2401/generateur_taches/releases/download/v0.1/Windows-executable.zip)
 - La décompresser.
 
 Linux :
 
-- Télécharger l'archive suivante
+- Télécharger l'archive suivante : [Exécutable Linux](https://github.com/dimitri2401/generateur_taches/releases/download/v0.1/Linux-executable.zip)
 - La décompresser.
 
-MacOS (exécutable non testé) :
+MacOS (exécutable non testé) : [Exécutable MacOS](https://github.com/dimitri2401/generateur_taches/releases/download/v0.1/MacOS-executable.zip)
 
 - Télécharger l'archive suivante
 - La décompresser.
