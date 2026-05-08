@@ -1,116 +1,169 @@
 ## Paramètres de configuration du générateur de tâches
 
-**Remarque :** les paramètres disponibles sont voués à être ajustés ou à disparaître au fil des expérimentations.
+**Remarque :** les paramètres disponibles sont susceptibles d'être ajustés ou supprimés au fil des expérimentations.
 
 ### Fichier de configuration :
 
-Ce document décrit les paramètres disponibles dans le fichier de configuration `config.yaml` du générateur de tâches et explique leur effet. Le fichier de configuration peut être ouvert avec un éditeur de texte.
+Ce document décrit les paramètres disponibles dans le fichier de configuration `config.yaml` du générateur de tâches et explique leur effet. Le fichier de configuration peut être ouvert avec n'importe quel éditeur de texte.
 
 **Important :** ne supprimer aucune entrée du fichier de configuration.
 
-### Fichiers d'entrée / sortie (`files`)
-- **`input`** : nom du fichier contenant les paramètres de la tâche, avec son extension (par ex. `tache.xls`). C'est le fichier Excel lu par le générateur, contenant les informations sur les professeurs, les cours, les préférences, les nombres de groupes, etc.
-- **`output`** : nom du fichier de sortie, sans extension (par ex. `resultat_tache`). Si le fichier existe déjà dans le répertoire (dû à une exécution préalable du logiciel par exemple), le logiciel renommera le nouveau fichier en lui attachant un numéro.
+### Fichiers d'entrée/sortie (`files`)
+- **`input`** : nom du fichier contenant les paramètres de la tâche, avec son extension (p. ex. `tache.xls`). C'est le fichier Excel lu par le générateur, contenant les informations sur les professeurs, les cours, les préférences, les nombres de groupes, etc.
+- **`output`** : nom du fichier de sortie, sans extension (p. ex. `resultat_tache`). Si le fichier existe déjà dans le répertoire (p. ex. en raison d'une exécution précédente du logiciel), le nouveau fichier sera renommé en lui ajoutant un numéro.
 
 ### Paramètres d'optimisation (`optimization`)
 
-Les premiers paramètres permettent de définir la fonction objectif à maximiser. La fonction servant de base (mais qui n'est généralement pas le meilleur choix) est donnée par :
+#### Fonction objectif
+
+Il est possible d'influencer la fonction objectif à maximiser.
+
+**Remarque** : la quantité \( pref(i,j) \) représente la préférence pénalisée au carré (aussi appelée ppc) :
 $$
-\sum_{\text{prof } i} \sum_{\text{cours } j} \text{nbr de groupes du cours $j$ attribués} \times pref(i , j)
+pref(i,j) = 1 - \frac{(2 - p)^2}{12} - \frac{(2 - p)}{6}
 $$
 
-Les différents paramètres permettent de modifier cette fonction et ces paramètres peuvent être combinés.
+- **`probleme_exact`** : `True`/`False`. Si `True`, la fonction suivante est utilisée comme objectif. C'est historiquement celle que le logiciel d'Éric utilisait comme métrique de qualité des tâches. Cette option donne la solution optimale au véritable problème de la tâche, mais rend la résolution potentiellement longue.
+$$
+\sum_{\text{prof } i} \frac{1}{\text{nbr d'heures enseignées par le prof \( i \)}} \sum_{\text{cours } j} \text{nbr de grp du cours \( j \) attribués} \times \text{nbr d'heures du cours \( j \)} \times pref(i , j)
+$$
 
-Ci-dessous sont listées les valeurs possibles et leur signification.
+Si l'option précédente est désactivée, c'est une version approchée du problème qui est résolue. Il s'agit alors de maximiser la fonction suivante :
+$$
+\sum_{\text{prof } i} \sum_{\text{cours } j} \text{nbr de grp du cours \( j \) attribués} \times \text{nbr d'heures du cours \( j \)} \times pref(i , j)
+$$
 
-  - **`hours_enabled`** : `True`/`False`. Pondérer la préférence pour un cours par le nombre d'heures de ce cours. Chaque terme à l'intérieur de la fonction objectif est ainsi multiplié par la durée du cours. C'est généralement une bonne chose de l'activer, car cette option simule bien la moyenne des préférences exprimées dans les scénarios.
-  - **`liberation_enabled`** : `True`/`False`. Essaie de simuler l'effet des libérations. Les professeurs libérés ayant moins de groupes ou d'heures, leur préférence a parfois un peu moins de poids dans le total. Chaque terme à l'intérieur de la fonction objectif est ainsi divisé par le pourcentage de libération du professeur.
-  - **`min_cours_enabled`** : `True`/`False`. Ajoute la préférence minimale pour un cours attribué à la fonction objectif un certain nombre de fois (définit par `nbr_min_count`). En donnant plus de poids au minimum, l'idée est d'encourager la maximisation de la pire des préférences pour un cours attribué. **Remarque :** cette option ne peut pas être activée en même temps que la suivante.
-  - **`min_prof_enabled`** : `True`/`False`. Ajoute la préférence minimale parmi l'ensemble des professeurs à la fonction objectif un certain nombre de fois (définit par `nbr_min_count`). En donnant plus de poids au minimum, l'idée est d'encourager la maximisation de la préférence la plus basse parmi les professeurs. **Remarque :** cette option ne peut pas être activée en même temps que la précédente.
-  - **`nbr_min_count`** : nombre entier strictement positif. Le nombre de fois que le minimum est ajouté à la fonction objectif si `min_enabled` est `True`.
+Ce problème simplifié aboutit à des solutions essentiellement équivalentes au problème exact, même si, parfois, elles ne sont pas totalement optimales. En revanche, sa résolution est généralement beaucoup plus rapide (environ un ordre de grandeur sur les tâches testées).
 
-**Remarque :** il n'existe a priori pas de meilleure combinaison de ces paramètres et il faut les ajuster au fil des expérimentations.
+Si l'option `probleme_exact` est désactivée, il est possible de simuler (partiellement) l'effet des libérations dans la version simplifiée de la fonction objectif :
 
-- **`allow_negative_preferences`** : `True`/`False`. Si `False`, aucun professeur ne peut se voir attribuer un cours sur lequel il a mis une préférence négative. Attention, désactiver cette option pourrait rendre la tâche impossible à générer.
+- **`liberation_enabled`** : `True`/`False`. Si `True`, tente de simuler l'effet des libérations dans le problème approché. Les professeurs libérés ayant moins de groupes ou d'heures, leur préférence a parfois un peu moins de poids dans le total. **Important :** ne peut pas être activé dans le cas du problème exact.
 
-- **`enforce_positive_with_negative`** : `True`/`False`. Si `True`, s'assure que si un professeur se voit attribuer un cours avec une préférence négative, il ait au moins une préférence positive aussi élevée pour compenser (empêche d'attribuer uniquement des négatifs sans contrepartie).
+#### Maximisation du minimum des préférences individuelles
 
-- **`max_hours`** : nombre entier. Limite supérieure du nombre d'heures attribuées à chaque professeur (par ex. `14`).
+Maximiser la fonction objectif ne garantit pas nécessairement que l'ensemble des professeurs aient des tâches satisfaisantes. Il ne s'agit en effet que de maximiser la moyenne des préférences.
 
-##### Conseils pour les paramètres d'optimisation
-- Essayer les différents paramètres d'optimisations. Il est difficile de prévoir lequel sera le plus efficace a priori. Certains paramètres peuvent toutefois allonger la durée de la résolution.
-- Essayer de générer des tâches sans préférences négatives `allow_negative_preferences = False`. Si elles s'avèrent décevantes, autoriser les négatifs. Dans ce cas, essayer aussi d'activer `enforce_positive_with_negative`.
+Afin de s'assurer que la préférence minimale parmi l'ensemble des professeurs ne soit pas trop basse, il est possible d'utiliser l'une des deux méthodes suivantes.
 
-### Génération de tâches alternatives (`taches_alternatives`)
-- **`epsilon_strategy`** : `True`/`False`. Si `True`, le générateur génère `nbr_taches_alternatives` tâches supplémentaires presque optimales. Pour ce faire, il relance l'optimiseur en imposant la contrainte `fonction objectif ≤ fonction objectif atteinte précédente - ɛ`, avec  `epsilon_value` défini ci-dessous.
-- **`epsilon_value`** : nombre réel positif (par ex. `0.0001`). Valeur du epsilon utilisée pour réduire le maximum de la fonction objectif.
-- **`nbr_taches_alternatives`** : nombre entier strictement positif. Nombre de solutions alternatives à générer (par ex. `3`).
+Optimisation lexicographique :
 
-##### Usage typique
-- Désactiver dans un premier temps les tâches alternatives, donc `epsilon_strategy = False` et changer les paramètres du fichier de tâche jusqu'à obtenir une tâche satisfaisante.
-- Ensuite seulement, générer des alternatives quasi-optimales.
-- Remarque : les tâches alternatives sont généralement plus longues à générer. 
+- **`lexicographic_optimization`** : `True`/`False`. Si `True`, active une optimisation en deux étapes. Premièrement, on cherche, parmi toutes les tâches possibles, celle pour laquelle la préférence minimale parmi l'ensemble des professeurs est maximale (sauf si une valeur minimale est fournie dans l'option suivante). Ensuite, on cherche la meilleure tâche qui respecte ce minimum.
+- **`min_lexico`** : valeur minimale des préférences individuelles à atteindre. Si 0, le logiciel calculera automatiquement la valeur maximale du minimum possible des préférences individuelles et l'utilisera comme seuil. Attention : laisser 0 si `probleme_exact` est désactivé (sauf si vous savez ce que vous faites).
+
+Augmenter la pondération du minimum :
+
+- **`min_prof_enabled`** : `True`/`False`. Si `True`, compte plusieurs fois la préférence minimale parmi l'ensemble des professeurs dans la fonction objectif (le nombre de fois est défini par `nbr_min_count`). En donnant plus de poids au minimum, l'idée est d'encourager la maximisation de la pire des préférences. **Important** : ne peut pas être activé si lexicographic_optimization est activé.
+- **`nbr_min_count`** : nombre entier strictement positif. Le nombre de fois que le minimum est ajouté à la fonction objectif si `min_prof_enabled` est `True`. **Remarque** : il n'existe pas de meilleure valeur pour ce paramètre. Elle dépend des paramètres de la tâche courante et ne peut être décidée que de façon empirique.
+
+#### Autres paramètres
+
+- **`allow_negative_preferences`** : `True`/`False`. Si `False`, aucun professeur ne peut se voir attribuer un cours pour lequel il a indiqué une préférence négative. Attention : désactiver cette option peut rendre la génération de la tâche impossible. L'activer rend généralement la résolution plus rapide.
+- **`enforce_positive_with_negative`** : `True`/`False`. Si `True`, garantit que, si un professeur se voit attribuer un cours pour lequel il a donné une préférence négative, il dispose également d'une préférence positive de valeur au moins équivalente pour compenser (évite d'attribuer uniquement des cours avec des préférences négatives).
+- **`max_hours`** : nombre entier. Limite supérieure du nombre d'heures attribuées à chaque professeur (p. ex. `14`).
+
+#### Génération de tâches alternatives (`taches_alternatives`)
+
+- **`nbr_taches_alternatives`** : nombre entier positif ou nul. Nombre de solutions alternatives à générer (p. ex. `3`). Si 0, aucune solution alternative n'est générée.
+- **`diversite`** : nombre entier strictement positif (p. ex. `1`). Un facteur plus élevé produit, en théorie, des tâches alternatives plus variées. Un facteur trop élevé peut rendre la résolution difficile voir impossible.
+
+**Remarque** : les tâches alternatives peuvent être plus longues à générer. Si l'optimisation lexicographique est activée, il est même possible que des tâches alternatives ne puissent pas être générées (s'il n'en existe aucun garantissant une maximisation de la préférence minimale).
 
 ### Paramètres du solveur (`solver`)
-- **`time_limit`** : temps limite en secondes pour le solveur (pr ex. `240`). Après ce temps, le solveur retourne une solution (potentiellement très) non-optimale.
-- **`afficher_log`** : `True`/`False`. Afficher les logs du solveur dans le terminal.
-- **`sauvegarder_log`** : `True`/`False`. Sauvegarder les logs du solveur dans un fichier.
-- **`fichier_log`** : nom du fichier log si `sauvegarder_log` est `True` (par ex. `log.txt`).
 
-##### Recommandations pour les paramètres du solveur
-- Si les tâches sont trop longues à produire, augmenter le `time_limit` ou relâcher certaines contraintes (dans le fichier de paramètres ou, par exemple, en activant `allow_negative_preferences`).
-- Si le logiciel est exécuté dans un terminal, il est généralement informatif d'activer `afficher_log`, mais peu utile d'activer `sauvegarder_log`.
+- **`time_limit`** : temps limite en secondes pour le solveur (p. ex. `240`). Après ce délai, le solveur renvoie une solution potentiellement non optimale. **Remarque** : dans le cas d'une solution non optimale, il est important de vérifier manuellement la validité de la tâche produite. Le logiciel ne le fait pas pour l'instant.
+- **`gap`** : tolérance du solveur afin d'estimer l'optimalité d'une solution (p. ex. `0.001`). Une tolérance élevée produit des solutions plus rapidement, mais qui ne sont pas nécessairement réellement optimales. Inversement, une petite tolérance garantit l'optimalité du résultat, mais peut augmenter drastiquement le temps de résolution.  
+- **`afficher_log`** : `True`/`False`. Si `True`, affiche les logs du solveur dans le terminal.
+- **`sauvegarder_log`** : `True`/`False`. Si `True`, sauvegarde les logs du solveur dans un fichier.
+- **`fichier_log`** : nom du fichier de log si `sauvegarder_log` est `True` (p. ex. `log.txt`).
 
 ### Exemple d'un fichier `config.yaml` valide
 
 ```
 
-# Configuration pour le générateur de tâches
+#################################################
+#
+# Générateur de tâches
+# Fichier de configuration
+#
+#################################################
 
+
+#################################################
 # Fichiers d'entrée/sortie
+#################################################
+
 files:
-  input: "tache.xls"
+  input: "tache.xls" # Avec l'extension
   output: "resultat_tache" # Sans extension, sera ajoutée automatiquement
 
-# Paramètres d'optimisation
-optimization:
-  # Fonction objectif - Facteurs à inclure
-  # Pondérer la préférence pour un cours par le nombre d'heures de ce cours
-  hours_enabled: True
 
-  # Tenter de prendre en compte les libérations (plus utile si hours_enabled est True)
+#################################################
+# Paramètres d'optimisation
+#################################################
+
+optimization:
+  #################################################
+  # Fonction objectif
+  #################################################
+
+  # Résoudre le problème exact, où la moyenne pondérée par le nombre d'heures enseignées est maximisée
+  # Potentiellement lent à résoudre (penser à ajuster le temps limite dans la section "solver" ci-dessous)
+  probleme_exact: True
+
+  # Tenter de prendre en compte les libérations dans le problème approché (ne peut pas être activé si probleme_exact est activé). Rend la résolution potentiellement plus lente. Utile seulement si les libérés ont l'air lésés dans la solution approchée
   liberation_enabled: False
 
-  # Tenter de maximiser également le minimum des préférences
-  # Attention : ne pas activer les deux options en même temps
-  min_cours_enabled: True # Cherche à augmenter la pire des préférences parmi l'ensemble des cours attribués
-  min_prof_enabled: False # Chercher à augmenter la pire des préférences parmi l'ensemble des professeurs
-  
-  # Si l'une des deux options précédentes est activée, nombre de fois que le minimum est compté dans la fonction objectif.
-  nbr_min_count: 10
 
-  # Autoriser l'attribution de cours pour lesquels une préférence négative a été donnée.
+  #################################################
+  # Maximisation du minimum des préférences individuelles
+  #################################################
+
+  # Optimisation lexicographique : maximiser la préférence minimale en premier, puis la moyenne pondérée des préférences
+  # Attention : si `probleme_exact` est désactivé, le minimum optimal peut ne pas être le véritable minimum
+  lexicographic_optimization: False
+  min_lexico: 0 # Valeur minimale des préférences individuelles à atteindre. Si 0, le logiciel calculera automatiquement la valeur maximale du minimum possible des préférences individuelles et l'utilisera comme seuil. Attention : laisser 0 si `probleme_exact` est désactivé (sauf si vous savez ce que vous faites)
+
+  # Alternative (incompatible avec lexicographic_optimization) : tenter de maximiser le minimum des préférences en même temps que la moyenne
+  min_prof_enabled: False # Ne peut pas être activé si lexicographic_optimization est activé
+  nbr_min_count: 50 # Nombre de fois que le minimum est compté dans la fonction objectif
+
+
+  #################################################
+  # Autres paramètres
+  #################################################
+
+  # Autoriser l'attribution de cours pour lesquels une préférence négative a été donnée
   allow_negative_preferences: False
 
-  # Si un professeur a une préférence négative pour un cours attribué, s'assurer qu'il dispose également d'une préférence positive de valeur au moins équivalente.
+  # Si un professeur a une préférence négative pour un cours attribué, s'assurer qu'il dispose également d'une préférence positive d'une valeur au moins équivalente
   enforce_positive_with_negative: False
   
-  # Nombre d'heures maximum par professeur
-  max_hours: 14
+  # Nombre maximum d'heures par professeur
+  max_hours: 15
 
+
+#################################################
 # Génération de tâches alternatives
-taches_alternatives:
-  # Utiliser un epsilon pour générer des tâches alternatives
-  epsilon_strategy: True
-  epsilon_value: 0.0001
+#################################################
+
+taches_alternatives: # Paramètres pour la génération de tâches alternatives après la première optimisation
 
   # Nombre de solutions alternatives à générer
   nbr_taches_alternatives: 2
+  # Facteur de diversité
+  diversite: 1 # Nombre entier >= 1. Un facteur plus élevé produit, en théorie, des tâches alternatives plus variées. Un facteur trop élevé peut rendre la résolution difficile voir impossible
 
+
+#################################################
 # Paramètres du solveur
+#################################################
+
 solver:
-  # Limite de temps en secondes
-  time_limit: 240
+  # Limite de temps pour chaque optimisation (en secondes)
+  time_limit: 1000
+
+  # Tolérance
+  gap: 0.001
 
   # Log
   afficher_log: True

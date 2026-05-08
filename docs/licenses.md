@@ -2,7 +2,7 @@
 
 Les exécutables fournis incluent les dépendances suivantes, avec leurs licences respectives.
 
-| Non             | Licence                              |
+| Nom             | Licence                              |
 |-----------------|--------------------------------------|
 | PuLP            | MIT License                          |
 | PyYAML          | MIT License                          |
