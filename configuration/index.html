@@ -34,12 +34,12 @@
           <a href=".." class="icon icon-home"> Générateur de tâches - Documentation
         </a><div role="search">
   <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
-      <input type="text" name="q" placeholder="Rechercher des documents" aria-label="Rechercher des documents" title="Tapez vos mots clés ici" />
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
 
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Menu de navigation">
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
                 <li class="toctree-l1"><a class="reference internal" href="..">Accueil</a>
                 </li>
@@ -55,25 +55,21 @@
               <ul class="current">
                 <li class="toctree-l1 current"><a class="reference internal current" href="#">Configuration</a>
     <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#fichier-de-configuration">Fichier de configuration :</a>
+    <li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration :</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#fichiers-dentreesortie-files">Fichiers d'entrée/sortie (files)</a>
+    <li class="toctree-l2"><a class="reference internal" href="#fichiers">Fichiers</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#parametres-doptimisation-optimization">Paramètres d'optimisation (optimization)</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#fonction-objectif">Fonction objectif</a>
+    <li class="toctree-l2"><a class="reference internal" href="#pre-optimisations-optionnelles">Pré-optimisations (optionnelles)</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#maximisation-du-minimum-des-preferences-individuelles">Maximisation du minimum des préférences individuelles</a>
+    <li class="toctree-l2"><a class="reference internal" href="#parametres-doptimisation">Paramètres d'optimisation</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#autres-parametres">Autres paramètres</a>
+    <li class="toctree-l2"><a class="reference internal" href="#taches-alternatives">Tâches alternatives</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#generation-de-taches-alternatives-taches_alternatives">Génération de tâches alternatives (taches_alternatives)</a>
+    <li class="toctree-l2"><a class="reference internal" href="#solveur">Solveur</a>
     </li>
-        </ul>
+    <li class="toctree-l2"><a class="reference internal" href="#generation">Génération</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#parametres-du-solveur-solver">Paramètres du solveur (solver)</a>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#exemple-dun-fichier-configyaml-valide">Exemple d'un fichier config.yaml valide</a>
+    <li class="toctree-l2"><a class="reference internal" href="#configuration_1">Configuration</a>
     </li>
     </ul>
                 </li>
@@ -95,7 +91,7 @@
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-      <nav class="wy-nav-top" role="navigation" aria-label="Menu de navigation sur mobile">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="..">Générateur de tâches - Documentation</a>
         
@@ -103,7 +99,7 @@
       <div class="wy-nav-content">
         <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href=".." class="icon icon-home" aria-label="Documents"></a></li>
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
       <li class="breadcrumb-item active">Configuration</li>
     <li class="wy-breadcrumbs-aside">
     </li>
@@ -114,172 +110,55 @@
             <div class="section" itemprop="articleBody">
               
                 <h2 id="parametres-de-configuration-du-generateur-de-taches">Paramètres de configuration du générateur de tâches</h2>
-<p><strong>Remarque :</strong> les paramètres disponibles sont susceptibles d'être ajustés ou supprimés au fil des expérimentations.</p>
-<h3 id="fichier-de-configuration">Fichier de configuration :</h3>
-<p>Ce document décrit les paramètres disponibles dans le fichier de configuration <code>config.yaml</code> du générateur de tâches et explique leur effet. Le fichier de configuration peut être ouvert avec n'importe quel éditeur de texte.</p>
+<h3 id="configuration">Configuration :</h3>
+<p>Depuis la version 0.3, la configuration peut se faire via l'interface graphique. Les options disponibles sont détaillées ci-dessous.</p>
+<p>Il est également possible de les modifier directement dans le fichier <code>config.yaml</code>, qui peut être ouvert avec n'importe quel éditeur de texte. Dans ce cas, les informations sur les différents paramètres sont détaillées dans le fichier yaml.</p>
 <p><strong>Important :</strong> ne supprimer aucune entrée du fichier de configuration.</p>
-<h3 id="fichiers-dentreesortie-files">Fichiers d'entrée/sortie (<code>files</code>)</h3>
+<h3 id="fichiers">Fichiers</h3>
 <ul>
-<li><strong><code>input</code></strong> : nom du fichier contenant les paramètres de la tâche, avec son extension (p. ex. <code>tache.xls</code>). C'est le fichier Excel lu par le générateur, contenant les informations sur les professeurs, les cours, les préférences, les nombres de groupes, etc.</li>
-<li><strong><code>output</code></strong> : nom du fichier de sortie, sans extension (p. ex. <code>resultat_tache</code>). Si le fichier existe déjà dans le répertoire (p. ex. en raison d'une exécution précédente du logiciel), le nouveau fichier sera renommé en lui ajoutant un numéro.</li>
+<li><strong><code>Fichier d'entrée</code></strong> : nom du fichier contenant les paramètres de la tâche, avec son extension (p. ex. <code>tache.xls</code>). C'est le fichier Excel lu par le générateur, contenant les informations sur les professeurs, les cours, les préférences, les nombres de groupes maximum, etc.</li>
+<li><strong><code>Fichier de sortie</code></strong> : nom du fichier de sortie, sans extension (p. ex. <code>resultat_tache</code>). Si le fichier existe déjà dans le répertoire (p. ex. en raison d'une exécution précédente du logiciel), le nouveau fichier sera renommé en lui ajoutant un numéro.</li>
 </ul>
-<h3 id="parametres-doptimisation-optimization">Paramètres d'optimisation (<code>optimization</code>)</h3>
-<h4 id="fonction-objectif">Fonction objectif</h4>
-<p>Il est possible d'influencer la fonction objectif à maximiser.</p>
-<p><strong>Remarque</strong> : la quantité <script type="math/tex"> pref(i,j) </script> représente la préférence pénalisée au carré (aussi appelée ppc) :
-<script type="math/tex; mode=display">
-pref(i,j) = 1 - \frac{(2 - p)^2}{12} - \frac{(2 - p)}{6}
-</script>
-</p>
+<h3 id="pre-optimisations-optionnelles">Pré-optimisations (optionnelles)</h3>
 <ul>
-<li><strong><code>probleme_exact</code></strong> : <code>True</code>/<code>False</code>. Si <code>True</code>, la fonction suivante est utilisée comme objectif. C'est historiquement celle que le logiciel d'Éric utilisait comme métrique de qualité des tâches. Cette option donne la solution optimale au véritable problème de la tâche, mais rend la résolution potentiellement longue.
-<script type="math/tex; mode=display">
-\sum_{\text{prof } i} \frac{1}{\text{nbr d'heures enseignées par le prof \( i \)}} \sum_{\text{cours } j} \text{nbr de grp du cours \( j \) attribués} \times \text{nbr d'heures du cours \( j \)} \times pref(i , j)
-</script>
-</li>
+<li><strong><code>Étapes 1 et 2</code></strong> : permet de choisir les pré-optimisations effectuées et leur ordre.</li>
+<li><strong><code>Préférence minimum</code></strong> : active une pré-optimisation qui cherche, parmi toutes les tâches possibles, celle dans laquelle la préférence minimale parmi l'ensemble des professeurs est maximale (sauf si une valeur minimale est fournie dans l'option suivante). Aucune tâche générée par la suite ne pourra avoir une préférence minimale inférieure à la valeur trouvée ou fournie (avec une tolérance de 1%).</li>
+<li><strong><code>Nombre de totalement satisfaits</code></strong> : active une pré-optimisation qui cherche, parmi toutes les tâches possibles, celle dans laquelle le nombre de professeurs totalement satisfaits est maximal (sauf si une valeur minimale est fournie dans l'option suivante). Aucune tâche générée par la suite ne pourra avoir un nombre de professeurs totalement satisfaits inférieur à la valeur trouvée ou fournie.</li>
+<li><strong><code>Seuil min. des préférences individuelles</code></strong> : nombre réel entre -1 et 1 (p. ex. <code>0.65</code>). Si l'option <code>Préférence minimum</code> est activée, on peut fixer à la main la préférence minimale autorisée. Inscrire 0 pour laisser le logiciel trouver sa valeur optimale.</li>
+<li><strong><code>Seuil min. du nbr. de profs totalement satisfaits</code></strong> : nombre entier positif ou nul (p. ex. <code>13</code>). Si l'option <code>Nombre de totalement satisfaits</code> est activée, on peut fixer à la main le nombre de professeurs totalement satisfaits minimal. Inscrire 0 pour laisser le logiciel trouver sa valeur optimale.</li>
 </ul>
-<p>Si l'option précédente est désactivée, c'est une version approchée du problème qui est résolue. Il s'agit alors de maximiser la fonction suivante :
-<script type="math/tex; mode=display">
-\sum_{\text{prof } i} \sum_{\text{cours } j} \text{nbr de grp du cours \( j \) attribués} \times \text{nbr d'heures du cours \( j \)} \times pref(i , j)
-</script>
-</p>
-<p>Ce problème simplifié aboutit à des solutions essentiellement équivalentes au problème exact, même si, parfois, elles ne sont pas totalement optimales. En revanche, sa résolution est généralement beaucoup plus rapide (environ un ordre de grandeur sur les tâches testées).</p>
-<p>Si l'option <code>probleme_exact</code> est désactivée, il est possible de simuler (partiellement) l'effet des libérations dans la version simplifiée de la fonction objectif :</p>
+<p><strong>Remarque</strong> : l'ordre des pré-optimisations est important. Changer l'ordre change les tâches produites.</p>
+<h3 id="parametres-doptimisation">Paramètres d'optimisation</h3>
 <ul>
-<li><strong><code>liberation_enabled</code></strong> : <code>True</code>/<code>False</code>. Si <code>True</code>, tente de simuler l'effet des libérations dans le problème approché. Les professeurs libérés ayant moins de groupes ou d'heures, leur préférence a parfois un peu moins de poids dans le total. <strong>Important :</strong> ne peut pas être activé dans le cas du problème exact.</li>
+<li><strong><code>Exclure les préférences négatives</code></strong> : si activé, aucun professeur ne peut se voir attribuer un cours pour lequel il a indiqué une préférence négative. Attention : activer cette option peut rendre la génération de la tâche impossible.</li>
+<li><strong><code>Nombre maximum d'heures par professeur</code></strong> : nombre entier. Limite supérieure du nombre d'heures attribuées à chaque professeur (p. ex. <code>14</code>).</li>
 </ul>
-<h4 id="maximisation-du-minimum-des-preferences-individuelles">Maximisation du minimum des préférences individuelles</h4>
-<p>Maximiser la fonction objectif ne garantit pas nécessairement que l'ensemble des professeurs aient des tâches satisfaisantes. Il ne s'agit en effet que de maximiser la moyenne des préférences.</p>
-<p>Afin de s'assurer que la préférence minimale parmi l'ensemble des professeurs ne soit pas trop basse, il est possible d'utiliser l'une des deux méthodes suivantes.</p>
-<p>Optimisation lexicographique :</p>
+<h3 id="taches-alternatives">Tâches alternatives</h3>
 <ul>
-<li><strong><code>lexicographic_optimization</code></strong> : <code>True</code>/<code>False</code>. Si <code>True</code>, active une optimisation en deux étapes. Premièrement, on cherche, parmi toutes les tâches possibles, celle pour laquelle la préférence minimale parmi l'ensemble des professeurs est maximale (sauf si une valeur minimale est fournie dans l'option suivante). Ensuite, on cherche la meilleure tâche qui respecte ce minimum.</li>
-<li><strong><code>min_lexico</code></strong> : valeur minimale des préférences individuelles à atteindre. Si 0, le logiciel calculera automatiquement la valeur maximale du minimum possible des préférences individuelles et l'utilisera comme seuil. Attention : laisser 0 si <code>probleme_exact</code> est désactivé (sauf si vous savez ce que vous faites).</li>
+<li><strong><code>Nombre de tâches alternatives</code></strong> : nombre entier positif ou nul. Nombre de solutions alternatives à générer (p. ex. <code>3</code>). Si 0, aucune solution alternative n'est générée.</li>
+<li><strong><code>Facteur de diversité</code></strong> : nombre entier strictement positif (p. ex. <code>1</code>). Nombre minimum de professeurs qui doivent abandonner au moins un cours qu'ils enseignaient, et ce par rapport à chacune des tâches précédemment générées. Un facteur trop élevé peut rendre la génération de tâches alternatives difficile, voire impossible.</li>
 </ul>
-<p>Augmenter la pondération du minimum :</p>
+<h3 id="solveur">Solveur</h3>
 <ul>
-<li><strong><code>min_prof_enabled</code></strong> : <code>True</code>/<code>False</code>. Si <code>True</code>, compte plusieurs fois la préférence minimale parmi l'ensemble des professeurs dans la fonction objectif (le nombre de fois est défini par <code>nbr_min_count</code>). En donnant plus de poids au minimum, l'idée est d'encourager la maximisation de la pire des préférences. <strong>Important</strong> : ne peut pas être activé si lexicographic_optimization est activé.</li>
-<li><strong><code>nbr_min_count</code></strong> : nombre entier strictement positif. Le nombre de fois que le minimum est ajouté à la fonction objectif si <code>min_prof_enabled</code> est <code>True</code>. <strong>Remarque</strong> : il n'existe pas de meilleure valeur pour ce paramètre. Elle dépend des paramètres de la tâche courante et ne peut être décidée que de façon empirique.</li>
+<li><strong><code>Sauvegarder le log</code></strong> : sauvegarde les messages du programme dans un fichier. Attention, le log précédent du même nom sera écrasé.</li>
+<li><strong><code>Fichier log</code></strong> : nom du fichier de log si sa sauvegarde est activée (p. ex. <code>log.txt</code>).</li>
 </ul>
-<h4 id="autres-parametres">Autres paramètres</h4>
+<h3 id="generation">Génération</h3>
 <ul>
-<li><strong><code>allow_negative_preferences</code></strong> : <code>True</code>/<code>False</code>. Si <code>False</code>, aucun professeur ne peut se voir attribuer un cours pour lequel il a indiqué une préférence négative. Attention : désactiver cette option peut rendre la génération de la tâche impossible. L'activer rend généralement la résolution plus rapide.</li>
-<li><strong><code>enforce_positive_with_negative</code></strong> : <code>True</code>/<code>False</code>. Si <code>True</code>, garantit que, si un professeur se voit attribuer un cours pour lequel il a donné une préférence négative, il dispose également d'une préférence positive de valeur au moins équivalente pour compenser (évite d'attribuer uniquement des cours avec des préférences négatives).</li>
-<li><strong><code>max_hours</code></strong> : nombre entier. Limite supérieure du nombre d'heures attribuées à chaque professeur (p. ex. <code>14</code>).</li>
+<li>Le bouton <code>Lancer</code> démarre la génération de tâches.</li>
+<li>Le bouton <code>Arrêter</code> arrête une génération en cours.</li>
 </ul>
-<h4 id="generation-de-taches-alternatives-taches_alternatives">Génération de tâches alternatives (<code>taches_alternatives</code>)</h4>
+<h3 id="configuration_1">Configuration</h3>
 <ul>
-<li><strong><code>nbr_taches_alternatives</code></strong> : nombre entier positif ou nul. Nombre de solutions alternatives à générer (p. ex. <code>3</code>). Si 0, aucune solution alternative n'est générée.</li>
-<li><strong><code>diversite</code></strong> : nombre entier strictement positif (p. ex. <code>1</code>). Un facteur plus élevé produit, en théorie, des tâches alternatives plus variées. Un facteur trop élevé peut rendre la résolution difficile voir impossible.</li>
+<li>Le bouton <code>Sauvegarder</code> permet de sauvegarder la configuration courante.</li>
+<li>Le bouton <code>Restaurer</code> permet de restaurer la configuration par défaut.</li>
 </ul>
-<p><strong>Remarque</strong> : les tâches alternatives peuvent être plus longues à générer. Si l'optimisation lexicographique est activée, il est même possible que des tâches alternatives ne puissent pas être générées (s'il n'en existe aucun garantissant une maximisation de la préférence minimale).</p>
-<h3 id="parametres-du-solveur-solver">Paramètres du solveur (<code>solver</code>)</h3>
-<ul>
-<li><strong><code>time_limit</code></strong> : temps limite en secondes pour le solveur (p. ex. <code>240</code>). Après ce délai, le solveur renvoie une solution potentiellement non optimale. <strong>Remarque</strong> : dans le cas d'une solution non optimale, il est important de vérifier manuellement la validité de la tâche produite. Le logiciel ne le fait pas pour l'instant.</li>
-<li><strong><code>gap</code></strong> : tolérance du solveur afin d'estimer l'optimalité d'une solution (p. ex. <code>0.001</code>). Une tolérance élevée produit des solutions plus rapidement, mais qui ne sont pas nécessairement réellement optimales. Inversement, une petite tolérance garantit l'optimalité du résultat, mais peut augmenter drastiquement le temps de résolution.  </li>
-<li><strong><code>afficher_log</code></strong> : <code>True</code>/<code>False</code>. Si <code>True</code>, affiche les logs du solveur dans le terminal.</li>
-<li><strong><code>sauvegarder_log</code></strong> : <code>True</code>/<code>False</code>. Si <code>True</code>, sauvegarde les logs du solveur dans un fichier.</li>
-<li><strong><code>fichier_log</code></strong> : nom du fichier de log si <code>sauvegarder_log</code> est <code>True</code> (p. ex. <code>log.txt</code>).</li>
-</ul>
-<h3 id="exemple-dun-fichier-configyaml-valide">Exemple d'un fichier <code>config.yaml</code> valide</h3>
-<pre><code>
-#################################################
-#
-# Générateur de tâches
-# Fichier de configuration
-#
-#################################################
-
-
-#################################################
-# Fichiers d'entrée/sortie
-#################################################
-
-files:
-  input: &quot;tache.xls&quot; # Avec l'extension
-  output: &quot;resultat_tache&quot; # Sans extension, sera ajoutée automatiquement
-
-
-#################################################
-# Paramètres d'optimisation
-#################################################
-
-optimization:
-  #################################################
-  # Fonction objectif
-  #################################################
-
-  # Résoudre le problème exact, où la moyenne pondérée par le nombre d'heures enseignées est maximisée
-  # Potentiellement lent à résoudre (penser à ajuster le temps limite dans la section &quot;solver&quot; ci-dessous)
-  probleme_exact: True
-
-  # Tenter de prendre en compte les libérations dans le problème approché (ne peut pas être activé si probleme_exact est activé). Rend la résolution potentiellement plus lente. Utile seulement si les libérés ont l'air lésés dans la solution approchée
-  liberation_enabled: False
-
-
-  #################################################
-  # Maximisation du minimum des préférences individuelles
-  #################################################
-
-  # Optimisation lexicographique : maximiser la préférence minimale en premier, puis la moyenne pondérée des préférences
-  # Attention : si `probleme_exact` est désactivé, le minimum optimal peut ne pas être le véritable minimum
-  lexicographic_optimization: False
-  min_lexico: 0 # Valeur minimale des préférences individuelles à atteindre. Si 0, le logiciel calculera automatiquement la valeur maximale du minimum possible des préférences individuelles et l'utilisera comme seuil. Attention : laisser 0 si `probleme_exact` est désactivé (sauf si vous savez ce que vous faites)
-
-  # Alternative (incompatible avec lexicographic_optimization) : tenter de maximiser le minimum des préférences en même temps que la moyenne
-  min_prof_enabled: False # Ne peut pas être activé si lexicographic_optimization est activé
-  nbr_min_count: 50 # Nombre de fois que le minimum est compté dans la fonction objectif
-
-
-  #################################################
-  # Autres paramètres
-  #################################################
-
-  # Autoriser l'attribution de cours pour lesquels une préférence négative a été donnée
-  allow_negative_preferences: False
-
-  # Si un professeur a une préférence négative pour un cours attribué, s'assurer qu'il dispose également d'une préférence positive d'une valeur au moins équivalente
-  enforce_positive_with_negative: False
-
-  # Nombre maximum d'heures par professeur
-  max_hours: 15
-
-
-#################################################
-# Génération de tâches alternatives
-#################################################
-
-taches_alternatives: # Paramètres pour la génération de tâches alternatives après la première optimisation
-
-  # Nombre de solutions alternatives à générer
-  nbr_taches_alternatives: 2
-  # Facteur de diversité
-  diversite: 1 # Nombre entier &gt;= 1. Un facteur plus élevé produit, en théorie, des tâches alternatives plus variées. Un facteur trop élevé peut rendre la résolution difficile voir impossible
-
-
-#################################################
-# Paramètres du solveur
-#################################################
-
-solver:
-  # Limite de temps pour chaque optimisation (en secondes)
-  time_limit: 1000
-
-  # Tolérance
-  gap: 0.001
-
-  # Log
-  afficher_log: True
-  sauvegarder_log: False
-  fichier_log: &quot;log.txt&quot;
-
-</code></pre>
               
             </div>
           </div><footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="Navigation de pied de page">
-        <a href="../usage/" class="btn btn-neutral float-left" title="Utilisation"><span class="icon icon-circle-arrow-left"></span> Précédent</a>
-        <a href="../how_it_works/" class="btn btn-neutral float-right" title="Comment ça fonctionne">Suivant <span class="icon icon-circle-arrow-right"></span></a>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../usage/" class="btn btn-neutral float-left" title="Utilisation"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../how_it_works/" class="btn btn-neutral float-right" title="Comment ça fonctionne">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -288,7 +167,7 @@ solver:
     <!-- Copyright etc -->
   </div>
 
-  Générée avec <a href="https://www.mkdocs.org/">MkDocs</a> avec un <a href="https://github.com/readthedocs/sphinx_rtd_theme">thème</a> fourni par <a href="https://readthedocs.org">Read the Docs</a>.
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
           
         </div>
@@ -306,10 +185,10 @@ solver:
         </span>
     
     
-      <span><a href="../usage/" style="color: #fcfcfc">&laquo; Précédent</a></span>
+      <span><a href="../usage/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="../how_it_works/" style="color: #fcfcfc">Suivant &raquo;</a></span>
+      <span><a href="../how_it_works/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>

@@ -34,12 +34,12 @@
           <a href=".." class="icon icon-home"> Générateur de tâches - Documentation
         </a><div role="search">
   <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
-      <input type="text" name="q" placeholder="Rechercher des documents" aria-label="Rechercher des documents" title="Tapez vos mots clés ici" />
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
 
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Menu de navigation">
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
                 <li class="toctree-l1"><a class="reference internal" href="..">Accueil</a>
                 </li>
@@ -65,6 +65,8 @@
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#lancement-a-partir-du-fichier-python">Lancement à partir du fichier Python</a>
     </li>
+    <li class="toctree-l2"><a class="reference internal" href="#generation-de-taches">Génération de tâches</a>
+    </li>
     </ul>
                 </li>
               </ul>
@@ -89,7 +91,7 @@
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-      <nav class="wy-nav-top" role="navigation" aria-label="Menu de navigation sur mobile">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="..">Générateur de tâches - Documentation</a>
         
@@ -97,7 +99,7 @@
       <div class="wy-nav-content">
         <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href=".." class="icon icon-home" aria-label="Documents"></a></li>
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
       <li class="breadcrumb-item active">Utilisation</li>
     <li class="wy-breadcrumbs-aside">
     </li>
@@ -109,34 +111,39 @@
               
                 <h2 id="utilisation-du-generateur-de-taches">Utilisation du générateur de tâches</h2>
 <h3 id="configuration">Configuration</h3>
-<p>La configuration du logiciel se fait dans le fichier <code>config.yaml</code>. Voir la page <a href="../configuration/">Configuration</a> pour plus de détails.</p>
-<p><strong>Important :</strong> avant de pouvoir générer des tâches, il faut fournir au logiciel un fichier de paramètres au format <code>.xls</code>, dont le nom correspond à l'information présente dans le fichier <code>config.yaml</code> (par ex. <code>tache.xls</code>). Ce fichier doit être copié dans le répertoire contenant l'exécutable du logiciel (ou le fichier source Python).</p>
+<p>La configuration du logiciel se fait dans l'interface graphique. Voir la page <a href="../configuration/">Configuration</a> pour plus de détails.</p>
+<p><strong>Important :</strong> avant de pouvoir générer des tâches, il faut fournir au logiciel un fichier de paramètres valide au format <code>.xls</code>, dont le nom correspond à celui indiqué dans l'interface graphique ou dans le fichier <code>config.yaml</code> (par ex. <code>tache.xls</code>). Ce fichier doit se trouver dans le répertoire contenant l'exécutable du logiciel (ou le fichier source Python).</p>
 <h3 id="lancement-a-partir-du-fichier-executable">Lancement à partir du fichier exécutable</h3>
 <h4 id="windows">Windows</h4>
 <ul>
-<li>Il est possible de simplement cliquer sur l'exécutable <code>generateur_taches.exe</code> afin de générer des tâches.</li>
-<li>Si le log est activé, il est toutefois recommandé d'exécuter le programme dans un terminal, afin de pouvoir surveiller le déroulement de la résolution.</li>
+<li>Cliquer sur l'exécutable <code>generateur_taches.exe</code> afin d'ouvrir l'interface graphique.</li>
 </ul>
 <p><strong>Remarque :</strong> si Windows Defender bloque l'exécution du programme, il faut cliquer sur <code>Informations complémentaires</code> pour pouvoir autoriser le logiciel.</p>
 <h4 id="linux">Linux</h4>
 <ul>
-<li>Exécuter le programme <code>generateur_taches</code> dans un terminal.</li>
+<li>Exécuter le programme <code>generateur_taches</code> dans un terminal afin d'ouvrir l'interface graphique.</li>
+<li>La version en ligne de commande peut être lancée depuis un terminal en utilisant l'option <code>--nogui</code>.</li>
 </ul>
 <h4 id="macos">MacOS</h4>
 <ul>
-<li>Exécutable non testé, je n'ai pas de Mac. Il devrait toutefois fonctionner, mais il faut peut-être autoriser son exécution.</li>
+<li>Exécuter le programme depuis un terminal.</li>
 </ul>
 <h3 id="lancement-a-partir-du-fichier-python">Lancement à partir du fichier Python</h3>
 <ul>
-<li>Ouvrir un terminal dans le répertoire <code>src</code></li>
-<li>Exécuter <code>python main.py</code>.</li>
+<li>Ouvrir un terminal dans le répertoire <code>src</code>.</li>
+<li>Exécuter <code>python gui.py</code>, ou <code>python main.py</code> pour la version en ligne de commande.</li>
+</ul>
+<h3 id="generation-de-taches">Génération de tâches</h3>
+<ul>
+<li>Une fois l'interface graphique lancée et la configuration effectuée, il suffit de cliquer sur <code>Lancer</code> pour générer des tâches.</li>
+<li>Le bouton <code>Arrêter</code> permet d'arrêter une génération en cours.</li>
 </ul>
               
             </div>
           </div><footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="Navigation de pied de page">
-        <a href="../installation/" class="btn btn-neutral float-left" title="Installation"><span class="icon icon-circle-arrow-left"></span> Précédent</a>
-        <a href="../configuration/" class="btn btn-neutral float-right" title="Configuration">Suivant <span class="icon icon-circle-arrow-right"></span></a>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../installation/" class="btn btn-neutral float-left" title="Installation"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../configuration/" class="btn btn-neutral float-right" title="Configuration">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -145,7 +152,7 @@
     <!-- Copyright etc -->
   </div>
 
-  Générée avec <a href="https://www.mkdocs.org/">MkDocs</a> avec un <a href="https://github.com/readthedocs/sphinx_rtd_theme">thème</a> fourni par <a href="https://readthedocs.org">Read the Docs</a>.
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
           
         </div>
@@ -163,10 +170,10 @@
         </span>
     
     
-      <span><a href="../installation/" style="color: #fcfcfc">&laquo; Précédent</a></span>
+      <span><a href="../installation/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="../configuration/" style="color: #fcfcfc">Suivant &raquo;</a></span>
+      <span><a href="../configuration/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>

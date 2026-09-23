@@ -34,12 +34,12 @@
           <a href=".." class="icon icon-home"> Générateur de tâches - Documentation
         </a><div role="search">
   <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
-      <input type="text" name="q" placeholder="Rechercher des documents" aria-label="Rechercher des documents" title="Tapez vos mots clés ici" />
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
 
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Menu de navigation">
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
                 <li class="toctree-l1"><a class="reference internal" href="..">Accueil</a>
                 </li>
@@ -79,7 +79,7 @@
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-      <nav class="wy-nav-top" role="navigation" aria-label="Menu de navigation sur mobile">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="..">Générateur de tâches - Documentation</a>
         
@@ -87,7 +87,7 @@
       <div class="wy-nav-content">
         <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href=".." class="icon icon-home" aria-label="Documents"></a></li>
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
       <li class="breadcrumb-item active">Comment ça fonctionne</li>
     <li class="wy-breadcrumbs-aside">
     </li>
@@ -98,8 +98,7 @@
             <div class="section" itemprop="articleBody">
               
                 <h2 id="comment-ca-fonctionne">Comment ça fonctionne ?</h2>
-<p>Le générateur utilise le solveur HiGHS (via la bibliothèque Python <code>pulp</code>) pour produire des tâches. HiGHS est un logiciel libre conçu pour résoudre des modèles de programmation linéaire et de programmation en nombres entiers mixtes.</p>
-<p>Le problème de la tâche peut être modélisé comme un problème de programmation en nombres entiers mixtes en définissant judicieusement la fonction objectif.</p>
+<p>Le générateur utilise le solveur HiGHS (via la bibliothèque Python <code>pulp</code>) pour produire des tâches. HiGHS est un logiciel libre conçu pour résoudre des modèles de programmation linéaire et de programmation en nombres entiers mixtes. En effet, le problème de la tâche peut être modélisé comme un problème de programmation en nombres entiers mixtes en définissant judicieusement la fonction objectif.</p>
 <h3 id="rappel-sur-la-signification-des-preferences-dans-le-logiciel-de-la-tache-deric-et-le-nouveau">Rappel sur la signification des préférences (dans le logiciel de la tâche d'Éric et le nouveau)</h3>
 <p>Si <script type="math/tex"> p </script> désigne la préférence exprimée par le professeur <script type="math/tex"> i </script> pour le cours <script type="math/tex"> j </script> dans le fichier de préférences, on définit la préférence pénalisée au carré <code>pref(i,j)</code> (aussi appelée ppc) par :
 <script type="math/tex; mode=display">
@@ -129,29 +128,23 @@ ppc = pref(i,j) = 1 - \frac{(2 - p)^2}{12} - \frac{(2 - p)}{6}
 </tr>
 </tbody>
 </table>
-<p>Remarque : l'idée derrière la préférence pénalisée au carré est de pénaliser plus fortement les préférences négatives, afin d'encourager l'attribution de cours pour lesquels les préférences exprimées sont positives ou nulles lors de l'optimisation.</p>
-<p>Pour un professeur <script type="math/tex"> i </script>, la préférence personnelle affichée dans les scénarios de tâches correspond à la moyenne pondérée par le nombre d'heures enseignées des <code>pref(i,j)</code> :
+<p><strong>Remarque :</strong> l'idée derrière la préférence pénalisée au carré est de pénaliser plus fortement les préférences négatives, afin d'encourager l'attribution de cours pour lesquels les préférences exprimées sont positives ou nulles lors de l'optimisation. Le logiciel tend ainsi à attribuer aux professeurs des cours qu'ils veulent vraiment.</p>
+<p>Pour un professeur <script type="math/tex"> i </script>, la préférence affichée dans les scénarios de tâches correspond à la moyenne pondérée par le nombre d'heures enseignées des <code>pref(i,j)</code> :
 <script type="math/tex; mode=display">
 \frac{1}{\text{nbr d'heures enseignées par le prof \( i \)}} \sum_{\text{cours } j} \text{nbr d'heures du cours \( j \) enseignées} \times pref(i,j)
 </script>
 </p>
 <h3 id="quessaie-de-faire-ce-logiciel">Qu'essaie de faire ce logiciel</h3>
-<p>Un problème de programmation linéaire consiste à optimiser (ici maximiser) <strong>une seule</strong> fonction objectif <strong>linéaire</strong> sous certaines contraintes. A priori, la tâche consiste à optimiser <strong>plusieurs</strong> fonctions (les préférences de chaque professeur) <strong>non linéaires</strong> (à cause de la division par le nombre d'heures totales enseignées).</p>
-<p>Il est toutefois possible de linéariser la fonction donnant les préférences de chaque professeur, puis d'optimiser la moyenne des préférences.</p>
-<p>Atteindre l'optimalité pour cet objectif conduit généralement à la maximisation des termes de la somme (et donc des préférences individuelles). Si ce n'est pas le cas, plusieurs options permettent d'assurer une préférence minimale satisfaisante pour chaque professeur.</p>
-<p><strong>Remarques :</strong></p>
-<ul>
-<li>Pour accélérer le calcul, il est possible de résoudre une version approchée du problème. La résolution est alors beaucoup plus rapide et fournit des solutions essentiellement équivalentes (mais pas toujours parfaitement optimales).</li>
-<li>Il est très simple de modifier la fonction objectif pour optimiser selon d'autres critères.</li>
-</ul>
-<p>Il reste ensuite à définir les contraintes (intervalles de CI, nombre de préparations maximum, etc.) et à laisser <code>HiGHS</code> résoudre le problème.</p>
-<p>L'avantage majeur de cette approche est sa rapidité (quelques minutes, voire secondes pour le problème approché, pour atteindre une solution optimale). De plus, <code>HiGHS</code> permet de savoir presque instantanément si le problème est réellement solvable sous les contraintes imposées.</p>
+<p>Un problème de programmation linéaire consiste à optimiser une fonction objectif <strong>linéaire</strong> sous certaines contraintes.</p>
+<p>Dans le cas du problème de la tâche, il s'agit alors de <strong>maximiser</strong> la moyenne pondérée des préférences des professeurs du département, qui est une fonction linéaire. Il ne reste qu'à définir les contraintes (intervalles de CI, nombre de préparations, etc.) et à laisser <code>HiGHS</code> résoudre le problème.</p>
+<p>L'avantage majeur de cette approche est sa rapidité (la solution optimale étant atteinte presque instantanément). De plus, si le problème n'est pas résoluble sous les contraintes imposées, <code>HiGHS</code> permet de le savoir immédiatement.</p>
+<p><strong>Remarque :</strong> il est très simple de modifier la fonction objectif pour optimiser selon d'autres critères. Le logiciel offre par exemple de maximiser la préférence minimale parmi l'ensemble des professeurs ou encore le nombre de professeurs totalement satisfaits.</p>
               
             </div>
           </div><footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="Navigation de pied de page">
-        <a href="../configuration/" class="btn btn-neutral float-left" title="Configuration"><span class="icon icon-circle-arrow-left"></span> Précédent</a>
-        <a href="../about/" class="btn btn-neutral float-right" title="À propos">Suivant <span class="icon icon-circle-arrow-right"></span></a>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../configuration/" class="btn btn-neutral float-left" title="Configuration"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../about/" class="btn btn-neutral float-right" title="À propos">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -160,7 +153,7 @@ ppc = pref(i,j) = 1 - \frac{(2 - p)^2}{12} - \frac{(2 - p)}{6}
     <!-- Copyright etc -->
   </div>
 
-  Générée avec <a href="https://www.mkdocs.org/">MkDocs</a> avec un <a href="https://github.com/readthedocs/sphinx_rtd_theme">thème</a> fourni par <a href="https://readthedocs.org">Read the Docs</a>.
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
           
         </div>
@@ -178,10 +171,10 @@ ppc = pref(i,j) = 1 - \frac{(2 - p)^2}{12} - \frac{(2 - p)}{6}
         </span>
     
     
-      <span><a href="../configuration/" style="color: #fcfcfc">&laquo; Précédent</a></span>
+      <span><a href="../configuration/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="../about/" style="color: #fcfcfc">Suivant &raquo;</a></span>
+      <span><a href="../about/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>
