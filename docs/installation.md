@@ -4,17 +4,17 @@
 
 Windows :
 
-- Télécharger l'archive suivante : [Exécutable Windows](https://github.com/dimitri2401/generateur_taches/releases/download/v0.2/Windows-executable.zip)
+- Télécharger l'archive suivante : [Exécutable Windows](https://github.com/dimitri2401/generateur_taches/releases/download/v0.3/Windows-executable.zip)
 - La décompresser.
 
 Linux :
 
-- Télécharger l'archive suivante : [Exécutable Linux](https://github.com/dimitri2401/generateur_taches/releases/download/v0.2/Linux-executable.zip)
+- Télécharger l'archive suivante : [Exécutable Linux](https://github.com/dimitri2401/generateur_taches/releases/download/v0.3/Linux-executable.zip)
 - La décompresser.
 
 MacOS (exécutable non testé)
 
-- Télécharger l'archive suivante : [Exécutable MacOS](https://github.com/dimitri2401/generateur_taches/releases/download/v0.2/MacOS-executable.zip)
+- Télécharger l'archive suivante : [Exécutable MacOS](https://github.com/dimitri2401/generateur_taches/releases/download/v0.3/MacOS-executable.zip)
 - La décompresser.
 
 #### Code source Python
