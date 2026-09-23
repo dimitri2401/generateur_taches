@@ -2,28 +2,33 @@
 
 ### Configuration
 
-La configuration du logiciel se fait dans le fichier `config.yaml`. Voir la page [Configuration](configuration.md) pour plus de détails.
+La configuration du logiciel se fait dans l'interface graphique. Voir la page [Configuration](configuration.md) pour plus de détails.
 
-**Important :** avant de pouvoir générer des tâches, il faut fournir au logiciel un fichier de paramètres au format `.xls`, dont le nom correspond à l'information présente dans le fichier `config.yaml` (par ex. `tache.xls`). Ce fichier doit être copié dans le répertoire contenant l'exécutable du logiciel (ou le fichier source Python).
+**Important :** avant de pouvoir générer des tâches, il faut fournir au logiciel un fichier de paramètres valide au format `.xls`, dont le nom correspond à celui indiqué dans l'interface graphique ou dans le fichier `config.yaml` (par ex. `tache.xls`). Ce fichier doit se trouver dans le répertoire contenant l'exécutable du logiciel (ou le fichier source Python).
 
 ### Lancement à partir du fichier exécutable
 
 #### Windows
 
-- Il est possible de simplement cliquer sur l'exécutable `generateur_taches.exe` afin de générer des tâches.
-- Si le log est activé, il est toutefois recommandé d'exécuter le programme dans un terminal, afin de pouvoir surveiller le déroulement de la résolution.
+- Cliquer sur l'exécutable `generateur_taches.exe` afin d'ouvrir l'interface graphique.
 
 **Remarque :** si Windows Defender bloque l'exécution du programme, il faut cliquer sur `Informations complémentaires` pour pouvoir autoriser le logiciel.
 
 #### Linux
 
-- Exécuter le programme `generateur_taches` dans un terminal.
+- Exécuter le programme `generateur_taches` dans un terminal afin d'ouvrir l'interface graphique.
+- La version en ligne de commande peut être lancée depuis un terminal en utilisant l'option `--nogui`.
 
 #### MacOS
 
-- Exécutable non testé, je n'ai pas de Mac. Il devrait toutefois fonctionner, mais il faut peut-être autoriser son exécution.
+- Exécuter le programme depuis un terminal.
 
 ### Lancement à partir du fichier Python
 
-- Ouvrir un terminal dans le répertoire `src`
-- Exécuter `python main.py`.
+- Ouvrir un terminal dans le répertoire `src`.
+- Exécuter `python gui.py`, ou `python main.py` pour la version en ligne de commande.
+
+### Génération de tâches
+
+- Une fois l'interface graphique lancée et la configuration effectuée, il suffit de cliquer sur `Lancer` pour générer des tâches.
+- Le bouton `Arrêter` permet d'arrêter une génération en cours.

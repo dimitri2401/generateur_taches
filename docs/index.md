@@ -2,23 +2,24 @@
 
 ### Informations générales
 
-Ce logiciel propose une approche alternative à celle utilisée habituellement au département de mathématiques du Collège Montmorency (aussi connue sous le nom de « le logiciel d'Éric »). Il repose sur des principes d'optimisation linéaire, dans le but d'obtenir plus efficacement des tâches.
+Ce logiciel propose une approche alternative à celle utilisée habituellement au département de mathématiques du Collège Montmorency afin de générer des tâches (aussi connue sous le nom de « le logiciel d'Éric »). Il repose sur des principes d'optimisation linéaire, dans le but d'obtenir plus efficacement des tâches optimales.
 
-Cette approche offre certains avantages :
+Cette approche offre plusieurs avantages :
 
-- **Rapidité :** la solution optimale est généralement atteinte en quelques minutes, voire quelques secondes pour le problème approché et des tâches faciles. Plusieurs solutions alternatives peuvent ensuite être produites rapidement.
-- **Faisabilité :** si les contraintes rendent la tâche impossible, le logiciel le signale presque instantanément.
-- **Facilité d'itération :** l'itération est simplifiée, permettant de tester rapidement l'effet des différents paramètres de la tâche qui peuvent être modifiés.
-- **Flexibilité :** il est simple de définir de nouvelles contraintes (par exemple, n'avoir aucun prof à -1).
+- **Simplicité :** une interface graphique rend l'utilisation simple, demandant moins de manipulations que l'ancienne méthode.
+- **Rapidité :** la solution optimale est généralement obtenue presque instantanément. Plusieurs solutions alternatives peuvent ensuite être produites très rapidement.
+- **Faisabilité :** si les contraintes rendent la tâche impossible, le logiciel le signale immédiatement.
+- **Facilité d'itération :** l'itération est simplifiée, permettant de tester rapidement l'effet des différents paramètres de la tâche.
+- **Flexibilité :** il est simple de définir de nouvelles contraintes (par exemple, n'avoir aucun professeurs avec des préférences négatives, ou maximiser le nombre de professeurs totalement satisfaits).
 
-Bien évidemment, cette approche est nouvelle et n'a été testée que sur un petit nombre de tâches (contrairement à l'ancien logiciel qui aura bientôt 20 ans). Des problèmes inattendus subsistent certainement encore.
+Bien évidemment, cette approche est nouvelle et n'a été testée que sur un petit nombre de tâches, contrairement à l'ancien logiciel qui aura bientôt 20 ans. Des problèmes inattendus subsistent certainement encore, et de nouvelles idées pourraient émerger.
 
-L'idée n'est donc pas de remplacer l'ancienne façon de procéder, mais de l'accompagner.
+### Nouveautés v0.3
 
-### À venir
-
-- Une nouvelle version du solveur HiGHS devrait offrir la parallélisation du problème sous peu. De gros gains de performance sont attendus.
-- Un module afin de vérifier la validité des tâches produites reste à programmer.
+- Ajout d'une interface graphique.
+- Optimisations majeures. Le temps de résolution du problème est grandement réduit.
+- Nouvelle option pour optimiser le nombre de professeurs totalement satisfaits.
+- Corrections de divers bugs.
 
 ### Licence
 

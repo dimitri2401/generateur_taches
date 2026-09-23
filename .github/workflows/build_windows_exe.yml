@@ -19,17 +19,21 @@ jobs:
         python-version: '3.14'
         cache: 'pip'
 
-    - name: Install dependencies
+    - name: Create a virtual environment
       run: |
-        python -m pip install --upgrade pip
+        python -m venv venv
+
+    - name: Install dependencies in the virtual environment
+      run: |
+        venv\Scripts\python -m pip install --upgrade pip
         # Install PyInstaller and your project's requirements
-        pip install pyinstaller
-        pip install -r requirements.txt
+        venv\Scripts\pip install pyinstaller
+        venv\Scripts\pip install -r requirements.txt
 
     - name: Build with PyInstaller
       run: |
-        # Run PyInstaller on your main script or .spec file
-        pyinstaller generateur_taches_onefile.spec
+        # Run PyInstaller using the virtual environment's executable path
+        venv\Scripts\pyinstaller --clean generateur_taches_onefile.spec
 
     - name: Copy config.yaml
       run: |

@@ -1,17 +1,28 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs, copy_metadata
+
+highspy_datas = collect_data_files('highspy')
+highspy_binaries = collect_dynamic_libs('highspy')
+
+extras_datas = collect_data_files('highspy_extras')
+extras_binaries = collect_dynamic_libs('highspy_extras')
+extras_metadata = copy_metadata('highspy_extras')
+
 a = Analysis(
-    ['src/main.py'],
+    ['src/gui.py'],
     pathex=[],
-    binaries=[],
-    datas=[],
-    hiddenimports=[],
+    binaries=highspy_binaries + extras_binaries,
+    datas=[('src/config_default.yaml', '.')] + highspy_datas + extras_datas + extras_metadata,
+    hiddenimports=['highspy', 'highspy_extras'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['matplotlib', 'scipy','PIL','setuptools'],
+    excludes=[
+        'pandas.io.formats.style', 'pandas.io.clipboard', 'sqlite3', 'unittest', 'doctest',
+    ],
     noarchive=False,
-    optimize=0,
+    optimize=1,
 )
 pyz = PYZ(a.pure)
 
@@ -28,7 +39,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

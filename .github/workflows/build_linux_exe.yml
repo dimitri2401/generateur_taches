@@ -15,21 +15,25 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        # Specify your desired Python version
+        # Python version
         python-version: '3.14'
         cache: 'pip'
 
-    - name: Install dependencies
+    - name: Create a virtual environment
       run: |
-        python -m pip install --upgrade pip
+        python -m venv venv
+
+    - name: Install dependencies in the virtual environment
+      run: |
+        venv/bin/python -m pip install --upgrade pip
         # Install PyInstaller and your project's requirements
-        pip install pyinstaller
-        pip install -r requirements.txt
+        venv/bin/pip install pyinstaller
+        venv/bin/pip install -r requirements.txt
 
     - name: Build with PyInstaller
       run: |
-        # Run PyInstaller on your main script or .spec file
-        pyinstaller generateur_taches_onefile.spec
+        # Run PyInstaller using the virtual environment's executable path
+        venv/bin/pyinstaller --clean generateur_taches_onefile.spec
 
     - name: Copy config.yaml
       run: |

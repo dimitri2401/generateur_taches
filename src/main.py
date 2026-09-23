@@ -1,811 +1,826 @@
 #################################################
-# Générateur de tâches - v0.2
+# Générateur de tâches - v0.3
 #################################################
 
-import pandas as pd
-from openpyxl.styles import Alignment, PatternFill, Border, Side, Font
-import numpy as np
-import pulp as pl
-import yaml
+# Imports standards
 import os
+import sys
 
-print()
-print("-----------------------------------------------------------------------------------------------")
-print()
-print("Générateur de tâches - v0.2")
-print()
-print("-----------------------------------------------------------------------------------------------")
-print()
+# Autres imports
+import highspy
+import numpy as np
+import pandas as pd
+import pulp as pl
+from openpyxl.styles import Alignment, Border, Font, NamedStyle, PatternFill, Side
+from ruamel.yaml import YAML
 
-#################################################
-# Chargement des paramètres depuis le fichier YAML
-#################################################
-
-#-----------------------------------------------
-# Gestion des fichiers
-#-----------------------------------------------
-
-# Chargement du fichier de configuration
-with open('config.yaml', 'r', encoding='utf-8') as f:
-    config = yaml.safe_load(f)
-
-# Fichiers d'entrée/sortie
-input_file = config['files']['input']
-output_file = config['files']['output']
-
-#-----------------------------------------------
-# Facteurs à inclure dans la fonction objectif
-#-----------------------------------------------
-
-# Résoudre le problème exact
-probleme_exact = config['optimization']['probleme_exact']
-
-# Prendre en compte les libérations si probleme_exact n'est pas activé
-if probleme_exact:
-    liberation_enabled = False # Ne peut pas être activé si le problème exact est activé
-else:
-    liberation_enabled = config['optimization']['liberation_enabled']
-
-# Optimisation lexicographique
-lexicographic_optimization = config['optimization']['lexicographic_optimization']
-min_lexico = config['optimization']['min_lexico']
-
-# Prendre en compte le minimum plusieurs fois dans la fonction objectif (inutile si lexicographic_optimization est activé)
-min_prof_enabled = config['optimization']['min_prof_enabled']
-if min_prof_enabled:
-    nbr_min_count = config['optimization']['nbr_min_count']
-
-# Autoriser les préférences négatives ou les compenser
-allow_negative_preferences = config['optimization']['allow_negative_preferences']
-enforce_positive_with_negative = config['optimization']['enforce_positive_with_negative']
-
-# Nombre maximum d'heures de cours par prof
-max_hours = config['optimization']['max_hours']
-
-#-----------------------------------------------
-# Paramètres pour la génération de tâches alternatives
-#-----------------------------------------------
-
-# Nbr de tâches supplémentaires à générer
-nbr_taches_alternatives = config['taches_alternatives']['nbr_taches_alternatives']
-# Facteur de diversité
-diversite_factor = config['taches_alternatives']['diversite']
-
-#-----------------------------------------------
-# Paramètres du solveur
-#-----------------------------------------------
-
-# Limite de temps pour le solveur en secondes
-solver_time_limit = config['solver']['time_limit']
-
-# Tolérance pour le solveur
-solver_gap = config['solver']['gap']
-
-# Afficher le log dans le terminal
-print_solver_log = config['solver']['afficher_log']
-
-# Sauvegarder le log dans un fichier
-save_solver_log = config['solver']['sauvegarder_log']
-if save_solver_log:
-    solver_log_file = config['solver']['fichier_log']
-else:
-    solver_log_file = None
 
 #################################################
-# Chargement des données depuis le fichier Excel
+# Log
 #################################################
 
-# Fonction de chargement des données depuis le fichier Excel
-def load_data(tache_file):
-    # Charge les feuilles du fichier Excel
-    dfs = pd.read_excel(tache_file, sheet_name=["PROF","COURS","PREF","MAX_NB_GR","ATTRIB_PREALABLE"], header=None)
+# Affichage en temps réel dans le terminal du gui
+sys.stdout.reconfigure(line_buffering=True)
 
-    df_prof = dfs["PROF"]
-    df_cours = dfs["COURS"]
-    df_pref = dfs["PREF"]
-    df_pref = df_pref.apply(pd.to_numeric, errors='coerce').fillna(0).astype(int) # Mettre float si on veut accepter les préférences réelles
-    df_max_nb_gr = dfs["MAX_NB_GR"]
-    df_max_nb_gr = df_max_nb_gr.apply(pd.to_numeric, errors='coerce').fillna(0).astype(int)
-    df_attrib_preal = dfs["ATTRIB_PREALABLE"]
-    df_attrib_preal = df_attrib_preal.apply(pd.to_numeric, errors='coerce').fillna(0).astype(int)
 
-    # Extraction des données de la page PROF
-    nbr_prof = int(df_prof.iat[0, 0])
-    
-    # Extraire toutes les colonnes en une fois
-    list_prof = df_prof.iloc[1:nbr_prof+1, 0].to_numpy(dtype=str)
-    liberation_prof = df_prof.iloc[1:nbr_prof+1, 1].to_numpy(dtype=float)
-    ci_cible = df_prof.iloc[1:nbr_prof+1, 2].to_numpy(dtype=float) # Non utilisé (on utilise la colonne directement dans ci_min et ci_max)
-    
-    # Calcul de ci_min et ci_max
-    ci_min = (df_prof.iloc[1:nbr_prof+1, 2] - df_prof.iloc[1:nbr_prof+1, 3]).to_numpy(dtype=float)
-    ci_max = (df_prof.iloc[1:nbr_prof+1, 2] + df_prof.iloc[1:nbr_prof+1, 4]).to_numpy(dtype=float)
-    
-    prep_min = df_prof.iloc[1:nbr_prof+1, 5].to_numpy(dtype=int) # Non utilisé
-    prep_max = df_prof.iloc[1:nbr_prof+1, 6].to_numpy(dtype=int)
-    gr_max = df_prof.iloc[1:nbr_prof+1, 7].to_numpy(dtype=int)
-    ci_ant = df_prof.iloc[1:nbr_prof+1, 10].to_numpy(dtype=float)
+# Redirection de la sortie du terminal vers le fichier log
+class Tee:
+    def __init__(self, filepath):
+        self.console = sys.stdout
+        self.file = open(filepath, "w", encoding="utf-8")
 
-    # Extraction des données de la page COURS
-    nbr_cours = int(df_cours.iat[0, 0])
-    
-    list_cours = df_cours.iloc[1:nbr_cours+1, 0].to_numpy(dtype=str)
-    periodes_cours = df_cours.iloc[1:nbr_cours+1, 1].to_numpy(dtype=int)
-    groupes_cours = df_cours.iloc[1:nbr_cours+1, 2].to_numpy(dtype=int)
-    etudiants_cours = df_cours.iloc[1:nbr_cours+1, 3].to_numpy(dtype=int)
+    def write(self, message):
+        self.console.write(message)
+        self.file.write(message)
 
-    # Extraction des préférences, nombres max de groupes et attributions préalables
-    pref_prof = df_pref.iloc[1:nbr_prof+1, 1:nbr_cours+1].to_numpy()
-    max_nb_gr = df_max_nb_gr.iloc[1:nbr_prof+1, 1:nbr_cours+1].to_numpy()
-    attrib_preal = df_attrib_preal.iloc[1:nbr_prof+1, 1:nbr_cours+1].to_numpy()
+    def flush(self):
+        self.console.flush()
+        self.file.flush()
 
-    return {
-        'professors': {
-            'list': list_prof,
-            'nbr': nbr_prof,
-            'liberation': liberation_prof,
-            'ci_cible': ci_cible,
-            'ci_min': ci_min,
-            'ci_max': ci_max,
-            'prep_min': prep_min,
-            'prep_max': prep_max,
-            'gr_max': gr_max,
-            'ci_ant': ci_ant
-        },
-        'courses': {
-            'list': list_cours,
-            'nbr': nbr_cours,
-            'periodes': periodes_cours,
-            'groupes': groupes_cours,
-            'etudiants': etudiants_cours
-        },
-        'preferences': {
-            'prof': pref_prof,
-            'max_nb_gr': max_nb_gr,
-            'attrib_preal': attrib_preal
-        }
-    }
-
-# Chargement des données depuis le fichier Excel
-data = load_data(input_file)
-
-# Extraction des données
-nbr_prof = data['professors']['nbr']
-list_prof = data['professors']['list']
-liberation_prof = data['professors']['liberation']
-ci_cible = data['professors']['ci_cible']
-ci_min = data['professors']['ci_min']
-ci_max = data['professors']['ci_max']
-prep_min = data['professors']['prep_min']
-prep_max = data['professors']['prep_max']
-gr_max = data['professors']['gr_max']
-ci_ant = data['professors']['ci_ant']
-
-nbr_cours = data['courses']['nbr']
-list_cours = data['courses']['list']
-periodes_cours = data['courses']['periodes']
-groupes_cours = data['courses']['groupes']
-etudiants_cours = data['courses']['etudiants']
-
-pref_prof = data['preferences']['prof']
-max_nb_gr = data['preferences']['max_nb_gr']
-attrib_preal = data['preferences']['attrib_preal']
-
-# Liste des indices (prof,cours,nbr de groupes) faisant l'objet d'attributions préalables
-attrib_preal_indices = [(i, j, attrib_preal[i][j]) for i in range(nbr_prof) for j in range(nbr_cours) if attrib_preal[i][j] != 0]
 
 #################################################
-# Définition du problème de programmation linéaire
+# Fonction pour afficher un message d'information dans le terminal
 #################################################
-
-#-----------------------------------------------
-# Fonction de calcul des pénalités au carré
-#-----------------------------------------------
-
-# Pré-calcul des préférences pénalisées au carré pour tous les (i,j). Évite les recalculs inutiles
-pref_matrix = np.array(1 - (2 - pref_prof)**2/12 - (2 - pref_prof)/6, dtype=float)
-
-#-----------------------------------------------
-# Création du problème et des variables de décision
-#-----------------------------------------------
-
-# Création du problème
-prob = pl.LpProblem("probleme_tache", pl.LpMaximize)
-
-# Variables de décision y[i][j]: le cours j est-il attribué au prof i (1 si oui, 0 sinon)
-y = pl.LpVariable.dicts("y", ((i,j) for i in range(nbr_prof) for j in range(nbr_cours)), cat='Binary')
-
-# Variables de décision x[i][j]: nombre de groupes du cours j attribués au prof i
-x = pl.LpVariable.dicts("x", ((i,j) for i in range(nbr_prof) for j in range(nbr_cours)), lowBound=0, cat='Integer') # upBound définies plus tard
-
-#-----------------------------------------------
-# Construction de la fonction objectif (selon les paramètres du fichier de configuration)
-#-----------------------------------------------
-
-def base_obj_term(i, j):
-    term = x[(i,j)] * periodes_cours[j] * pref_matrix[i, j] # Fonction de base à optimiser : nbr de groupes du cours j * durée cours j * préférence pour le cours j
-    if liberation_enabled:
-        if liberation_prof[i] != 0: # Éviter la division par zéro
-            term = term / liberation_prof[i] # Prendre en compte la libération du prof
-    return term
-
-# Pré-calcul de tous les termes de la fonction objectif - Évite les recalculs inutiles dans chaque contrainte
-obj_terms = {(i, j): base_obj_term(i, j) for i in range(nbr_prof) for j in range(nbr_cours)}
-
-# Définition du problème exact, où la moyenne pondérée est maximisée.
-# Attention, aucun prof ne peut avoir 0 heure de cours, sinon la moyenne pondérée n'est pas définie
-if probleme_exact:
-    avg = pl.LpVariable.dicts("avg", range(nbr_prof), lowBound=-1, upBound=1, cat='Continuous') # Moyennes pondérées des préférences des prof
-
-    # On encode le nombre d'heures de cours totales d'un prof en binaire. Permet de réduire le nombre de variables
-    K = int(max_hours).bit_length() # Nombre de bits nécessaires pour représenter max_hours
-    b = pl.LpVariable.dicts("b", ((i,k) for i in range(nbr_prof) for k in range(K)), cat='Binary') # b[(i,k)] est la k-ième bit du nombre d'heures de cours totales du prof i
-    v = pl.LpVariable.dicts("v", ((i,k) for i in range(nbr_prof) for k in range(K)), lowBound=-1, upBound=1, cat='Continuous') # v[(i,k)] = avg[i] * b[(i,k)]
-
-    # On linéarise la moyenne pondérée
-    for i in range(nbr_prof):
-        prob += pl.lpSum((1 << k) * b[(i,k)] for k in range(K)) == pl.lpSum(periodes_cours[j] * x[(i,j)] for j in range(nbr_cours)) # Le nombre d'heures (converti du binaire) attribuées au prof i doit être égal à la somme des périodes des cours qui lui sont attribués
-        prob += pl.lpSum(obj_terms[(i,j)] for j in range(nbr_cours)) == pl.lpSum((1 << k) * v[(i,k)] for k in range(K))
-
-        for k in range(K):
-            prob += v[(i,k)] <= b[(i,k)]
-            prob += v[(i,k)] >= -b[(i,k)]
-            prob += v[(i,k)] <= avg[i] + (1 - b[(i,k)])
-            prob += v[(i,k)] >= avg[i] - (1 - b[(i,k)])
-
-    # Fonction objectif
-    objective_fct = pl.lpSum(avg[i] for i in range(nbr_prof)) # Objectif: maximiser la moyenne des préférences pondérées
-
-    # Si min_prof_enabled ou lexicographic_optimization est activé, on ajoute une variable pour le minimum des préférences
-    if min_prof_enabled or lexicographic_optimization:
-        min_pref_value = pl.LpVariable("min_pref_value", lowBound=-1,upBound=1, cat='Continuous') # La préférence pondérée minimale parmi les profs
-        
-        # Faire en sorte que min_pref_value soit le minimum des avg[i]
-        for i in range(nbr_prof):
-            prob += min_pref_value <= avg[i]
-
-        # Si min_prof_enabled, la fonction objectif inclut le minimum un certain nombre de fois et la moyenne des préférences pondérées.
-        if min_prof_enabled and not lexicographic_optimization:
-            objective_fct += nbr_min_count * min_pref_value
-
-# Sinon, définition du problème approché.
-# On maximise la somme des préférences pondérées, sans faire de moyenne sur le nombre d'heures enseignées
-# Approximation raisonnable et généralement beaucoup plus rapide que le problème exact
-else:
-    objective_fct = pl.lpSum(obj_terms.values()) # Objectif: maximiser la somme des préférences, non pondérée
-
-    # Si min_prof_enabled ou lexicographic_optimization est activé, on ajoute une variable pour le minimum des préférences
-    if min_prof_enabled or lexicographic_optimization:
-        if liberation_enabled: # Il faut, par précaution, des bornes plus larges pour min_pref_value si la libération est prise en compte
-            min_pref_value = pl.LpVariable("min_pref_value", lowBound= -1.5 * max_hours, upBound= 1.5 * max_hours, cat='Continuous') # La préférence minimale parmi les profs. Estimation très approximative des bornes. Le pire cas ne devrait pas être plus que 1.5 * max_hours en considérant les libérations
-        else:
-            min_pref_value = pl.LpVariable("min_pref_value", lowBound= - max_hours, upBound= max_hours, cat='Continuous') # La préférence minimale parmi les profs
-
-        # Faire en sorte que min_pref_value soit le minimum
-        for i in range(nbr_prof):
-            prob += min_pref_value <= pl.lpSum(obj_terms[(i, j)] for j in range(nbr_cours))
-
-        # Si min_prof_enabled, la fonction objectif inclut le minimum plusieurs fois ainsi que la somme totale des termes.
-        if min_prof_enabled and not lexicographic_optimization:
-            objective_fct += nbr_min_count * min_pref_value
-
-# Ajout de la fonction objectif au problème
-prob += objective_fct
-
-#-----------------------------------------------
-# Contraintes d'optimisation de base
-#-----------------------------------------------
-
-# Contrainte d'optimisation: respecter le nombre maximum de groupes par prof pour chacun des cours
-# Si max_nb_gr[i][j] = 0, alors y[i][j] et x[i][j] valent 0 (pas de groupe attribué). Sinon, y[i][j] peut être 1 au maximum et x[i][j] peut être max_nb_gr[i][j] au maximum.
-for i in range(nbr_prof):
-    for j in range(nbr_cours):
-        x[(i,j)].upBound = min(max_nb_gr[i][j], groupes_cours[j])
-        y[(i,j)].upBound = int(max_nb_gr[i][j] > 0)
-
-# Si on n'autorise pas les préférences négatives, alors x[i][j] et y[i][j] doivent être 0 pour les cours à préférence négative
-if not allow_negative_preferences:
-    for i in range(nbr_prof):
-        for j in range(nbr_cours):
-            if pref_prof[i, j] < 0:
-                x[(i,j)].upBound = 0
-                y[(i,j)].upBound = 0
-
-# Si on autorise les préférences négatives mais qu'on veut s'assurer qu'elles soient compensées par des préférences positives
-if allow_negative_preferences and enforce_positive_with_negative:
-    for i in range(nbr_prof):
-        prob += pl.lpSum(y[(i,j)] * pref_prof[i][j] for j in range(nbr_cours)) >= 0
-
-# On lie x et y
-# On s'assure que le nombre de groupes attribués ne dépasse pas max_nb_gr[i][j]
-# On omet les paires (i,j) avec upBound=0 car elles sont déjà fixées à 0 et n'ont pas besoin de contraintes supplémentaires
-for i in range(nbr_prof):
-    for j in range(nbr_cours):
-        if x[(i,j)].upBound > 0:
-            prob += x[(i,j)] >= y[(i,j)]
-            prob += x[(i,j)] <= y[(i,j)] * max_nb_gr[i][j]
-
-# Tous les groupes de chaque cours doivent être attribués
-for j in range(nbr_cours):
-    prob += pl.lpSum(x[(i,j)] for i in range(nbr_prof)) == groupes_cours[j]
-
-#-----------------------------------------------
-# Contraintes liées à la CI
-#-----------------------------------------------
-
-# Fonctions intervenants dans le calcul de la CI
-# hc[i] = heures de cours pour le prof i
-hc = {i: pl.lpSum(periodes_cours[j] * x[(i,j)] for j in range(nbr_cours)) for i in range(nbr_prof)}
-
-# hp[i] = heures de préparation pour le prof i
-hp = {i: pl.lpSum(periodes_cours[j] * y[(i,j)] for j in range(nbr_cours)) for i in range(nbr_prof)}
-
-# nes[i] = nombre d'étudiants pour le prof i
-nes = {i: pl.lpSum(etudiants_cours[j] * x[(i,j)] for j in range(nbr_cours)) for i in range(nbr_prof)}
-
-# pes[i] = périodes × étudiants pour le prof i
-pes = {i: pl.lpSum(periodes_cours[j] * x[(i,j)] * etudiants_cours[j] for j in range(nbr_cours)) for i in range(nbr_prof)}
-
-# nbr_prep[i] = nombre de préparations pour le prof i
-nbr_prep = {i: pl.lpSum(y[(i,j)] for j in range(nbr_cours)) for i in range(nbr_prof)}
-
-# Le calcul de la CI contient des contraintes conditionnelles qu'il faut linéariser.
-# On utilise la méthode du Big M
-
-# Linéarisation de la condition nes >= 75
-M1 = 160 # >= à la valeur maximale possible de nes(i). On impose nes <= 160 pour éviter les complications de linéarisation au-delà de 160. Un tel scénario serait probablement rejeté dans tous les cas
-
-# Variables binaires z[i]: z[i]=1 si nes(i) >= 75, 0 sinon
-z = pl.LpVariable.dicts("z", range(nbr_prof), cat='Binary')
-
-# Variables entières w[i]: w[i]=nes(i) si nes(i) >= 75, 0 sinon
-w = pl.LpVariable.dicts("w", range(nbr_prof), lowBound=0, upBound=M1, cat='Continuous') # En théorie, la cat de w[i] devrait être entier, mais sa définition implique déjà qu'il soit entier. Les variables continues sont plus faciles à résoudre.
-
-# Contraintes pour w[i] = nes[i] si nes[i] >= 75, sinon w[i] = 0 avec la méthode Big M
-for i in range(nbr_prof):
-    # Bornes pour nes[i] pour restreindre le domaine de recherche
-    prob += nes[i] <= 160 # On impose que nes[i] ne dépasse pas 160 pour éviter les complications de linéarisation au-delà de 160.
-
-    # Si le professeur a des attributions préalables, on peut calculer une borne inférieure pour nes[i]
-    min_nes = sum(etudiants_cours[j] * attrib_preal[i][j] for j in range(nbr_cours) if attrib_preal[i][j] > 0)
-    if min_nes >= 75:
-        z[i].lowBound = 1 # nes[i] >= 75 assuré, donc z = 1
-
-    # z[i]=1 si nes[i] >= 75, sinon z[i]=0
-    prob += nes[i] <= 74 + M1 * z[i]  # Si nes[i] >= 75, alors z[i]=1
-    prob += nes[i] >= 75 - 75 * (1 - z[i]) # Si nes[i] < 75, alors z[i]=0
-
-    # w[i] = nes[i] si z[i]=1, sinon w[i]=0
-    prob += w[i] <= M1 * z[i] # Force w[i]=0 si z[i]=0
-    prob += w[i] >= nes[i] - M1 * (1 - z[i]) # Force w[i]=nes[i] si z[i]=1
-    prob += w[i] <= nes[i]
-
-# Linéarisation de la condition pes >= 416
-# M2 >= la valeur maximale possible de pes(i) - 415
-# Calculé par professeur, à partir de la formule de la ci: ci <= ci_max, hc et hp >= nbr_heures_min et nes >= 0
-nbr_heures_min = min(periodes_cours) # Cours avec le moins de périodes, pour la majoration de pes 
-M2 = [ max(int(np.floor((ci_max[i] - 2.1 * nbr_heures_min - 415 * 0.04) / 0.07)) + 1, 0) for i in range(nbr_prof) ] # +1 par sécurité
-
-for i in range(len(M2)):
-    if M2[i] > 0:
-        M2[i] = min(M2[i], 385) # Remplacer la borne par 385 (= 800 - 415) si la borne sup précédemment calculée est trop grande (car par exemple trop grande ci_max). Calculé sur la base de 20h x 40 étudiants.
-
-# Variables binaires t[i]: t[i]=1 si pes(i) >= 416, 0 sinon
-t = pl.LpVariable.dicts("t", range(nbr_prof), cat='Binary')
-
-# Variables entières m[i]: m[i]=pes(i) - 415 si pes(i) >= 416, 0 sinon
-m = pl.LpVariable.dicts("m", range(nbr_prof), lowBound=0, cat='Continuous') # En théorie, la cat de m[i] devrait être entier, mais sa définition implique déjà qu'il soit entier. Les variables continues sont plus faciles à résoudre.
-
-# Contraintes pour m[i] = pes[i] - 415 si pes[i] >= 416, sinon m[i] = 0
-for i in range(nbr_prof):
-    m[i].upBound = M2[i]
-    prob += m[i] >= pes[i] - 415
-
-    if M2[i] > 0: # Si le pes est peut-être >= 416
-        prob += pes[i] >= 416 * t[i]
-        prob += pes[i] <= 415 + M2[i] * t[i]
-        prob += m[i] <= pes[i] - 415 * t[i]
-        prob += m[i] <= M2[i] * t[i]
-    else: # Sinon, pes[i] ne peut pas dépasser 415, donc m[i] doit être 0
-        t[i].upBound = 0
-        # m[i] est automatiquement fixé à 0 par sa upBound.
-
-# Calcul de la CI pour chaque prof
-ci = {i: hc[i] * 1.2 + hp[i] * 0.9 + pes[i] * 0.04 + m[i] * 0.03 + w[i] * 0.01 for i in range(nbr_prof)}
-# Ce n'est pas la formule complète de la CI: il manque la contribution des nes >= 160. On suppose que ça n'arrive pas pour éviter la pénalité au carré qu'il faudrait linéariser
-# Le calcul final de la CI dans le fichier Excel prend en compte la pénalité au carré et est donc correct quoi qu'il arrive
-
-# CI des profs entre min et max
-for i in range(nbr_prof):
-    prob += ci[i] >= ci_min[i]
-    prob += ci[i] <= ci_max[i]
-
-# Nbr d'heures entre 0 et max_hours (défini dans config.yaml)
-for i in range(nbr_prof):
-    prob += hc[i] <= max_hours
-
-# Nbr total de groupe max par prof entre 0 et gr_max
-for i in range(nbr_prof):
-    prob += pl.lpSum(x[(i,j)] for j in range(nbr_cours)) <= gr_max[i]
-
-# Nbr de préparations max par prof
-for i in range(nbr_prof):
-    prob += nbr_prep[i] <= prep_max[i]
-
-# Attribution préalables (à partir de la liste des indices attrib_preal_indices)
-for i, j, nb_groupes in attrib_preal_indices:
-    y[(i,j)].lowBound = 1
-    y[(i,j)].upBound = 1
-    x[(i,j)].lowBound = nb_groupes
-    # x[(i,j)].upBound est déjà défini par max_nb_gr[i][j] ou groupes_cours[j].
-    # Attention: s'assurer que le max_nb_gr[i][j] est rempli pour les attributions préalables
-
-#################################################
-# Traitement des résultats
-# On arrondit les valeurs qui devraient être entières pour éviter les potentielles approximations du solveur
-# Assure un résultat valide dans le fichier Excel
-#################################################
-
-def get_val(v): # Retourne v arrondi à l'entier, ou 0 si None - Au cas où la valeur retournée par le solver serait None
-    return 0 if v.varValue is None else round(v.varValue)
-
-def round_xy(): # Stocke dans un np.array les valeurs arrondies des variables de décision
-    global y_output, x_output
-    y_output = np.array([[get_val(y[(i,j)]) for j in range(nbr_cours)] for i in range(nbr_prof)])
-    x_output = np.array([[get_val(x[(i,j)]) for j in range(nbr_cours)] for i in range(nbr_prof)])
-
-# Calcul des composantes de la CI à partir des variables de décision arrondies
-
-def hc_output(i):
-    # sum_j de periodes_cours[j] * x_output[i,j]
-    return int(np.dot(periodes_cours, x_output[i]))
-
-def hp_output(i):
-    # sum_j de periodes_cours[j] * y_output[i,j]
-    return int(np.dot(periodes_cours, y_output[i]))
-
-def nes_output(i):
-    # sum_j de etudiants_cours[j] * x_output[i,j]
-    return int(np.dot(etudiants_cours, x_output[i]))
-
-coeff = periodes_cours * etudiants_cours # Pré-calcul des coefficients pour pes_output
-def pes_output(i):
-    # sum_j de periodes[j] * etudiants[j] * x_output[i,j]
-    return int(np.dot(coeff, x_output[i]))
-
-def nbr_prep_output(i):
-    # sum_j de y_output[i,j]
-    return int(np.sum(y_output[i]))
-
-def ci_output(i):
-    if pes_output(i) >= 416:
-        total = hc_output(i) * 1.2 + hp_output(i) * 0.9 + 415 * 0.04 + (pes_output(i)-415) * 0.07
-    else:
-        total = hc_output(i) * 1.2 + hp_output(i) * 0.9 + pes_output(i) * 0.04
-    if nes_output(i) >= 75:
-        total += nes_output(i) * 0.01
-    if nes_output(i) >= 161:
-        total += (nes_output(i) - 160)**2 * 0.1
-    return total
-
-#################################################
-# Exportation des résultats dans un fichier Excel
-#################################################
-
-# Fonction d'exportation des résultats dans un fichier Excel
-def save_excel_file(writer, numero_tache): # Exportation des résultats dans un fichier Excel comme nouvelle feuille
-    round_xy() # Arrondir les valeurs des variables de décision
-
-    # Création du DataFrame des résultats
-    df_tache = pd.DataFrame()
-
-    # Remplissage du DataFrame avec les résultats
-    # Nom des profs
-    df_tache['Prof'] = list_prof
-
-    # Nombre de groupes attribués par cours
-    for j in range(nbr_cours):
-        col_name = list_cours[j]
-        df_tache[col_name] = [x_output[i,j] for i in range(nbr_prof)]
-
-    # Libération
-    df_tache['% cours'] = liberation_prof 
-
-    # CI des profs
-    ci_values = []
-    ci_pleine_values = []
-    ci_annee_values = []
-
-    # Pénalités
-    pref_pond_heure_values = []
-
-    # Autres indicateurs
-    nbr_prep_values = []
-    nbr_gr_values = []
-    nbr_heures_values = []
-
-    # On ajoute les valeurs aux différentes listes
-    for i in range(nbr_prof):
-        ci_values.append(ci_output(i))
-        ci_pleine_values.append(ci_output(i) + 40 * (1-liberation_prof[i]))
-        ci_annee_values.append(ci_ant[i] + ci_pleine_values[i])
-        nbr_prep_values.append(nbr_prep_output(i))
-        nbr_gr_values.append(sum(x_output[i,j] for j in range(nbr_cours)))
-        nbr_heures_values.append(hc_output(i))
-        if nbr_heures_values[i] == 0:
-            pref_pond_heure_values.append(0)
-        else:
-            pref_pond_heure_values.append(round(sum(periodes_cours[j] * x_output[i,j] * pref_matrix[i, j]/nbr_heures_values[i] for j in range(nbr_cours)),2))
-
-    # Ajout des colonnes de CI, pénalités et autres indicateurs au DataFrame
-    df_tache['CI Cours'] = ci_values
-    df_tache['CI Pleine'] = ci_pleine_values
-    df_tache['CI Année'] = ci_annee_values
-    df_tache['Nbr. Prép.'] = nbr_prep_values
-    df_tache['Nbr. Groupes'] = nbr_gr_values
-    df_tache['Nbr. Périodes'] = nbr_heures_values
-    df_tache['Préf.'] = pref_pond_heure_values
-
-    # Nom de la feuille Excel. "1" pour la première, "2", "3", etc. pour les alternatives
-    sheet_name = str(numero_tache + 1)
-
-    # Mise en forme et enregistrement du fichier Excel
-    df_tache.to_excel(writer, sheet_name=sheet_name, index=False)
-    sheet = writer.sheets[sheet_name]
-
-    # Coloration des cellules contenant des préférences négatives
-    couleur_m1 = PatternFill(start_color="D3D3D3", end_color="D3D3D3", fill_type="solid") # Gris clair pour les préférences de -1
-    couleur_m2 = PatternFill(start_color="5A5A5A", end_color="5A5A5A", fill_type="solid") # Gris foncé pour les préférences de -2
-    for i in range(nbr_prof):
-        for j in range(nbr_cours):
-            if pref_prof[i][j] == -1 and y_output[i,j] == 1:
-                sheet.cell(row=i+2, column=j+2).fill = couleur_m1 # +2 à cause des en-têtes
-            elif pref_prof[i][j] == -2 and y_output[i,j] == 1:
-                sheet.cell(row=i+2, column=j+2).fill = couleur_m2 # +2 à cause des en-têtes
-
-    # Styles de bordure pour les cellules
-    thin_border = Border(
-        left=Side(style='thin'), 
-        right=Side(style='thin'), 
-        top=Side(style='thin'), 
-        bottom=Side(style='thin'))
-        
-    for row in sheet.iter_rows(min_row=1, max_row=sheet.max_row, min_col=1, max_col=sheet.max_column):
-        for cell in row:
-            cell.border = thin_border
-
-    # Colonne (% cours) en % avec 1 décimale
-    col_liberation = df_tache.columns.get_loc('% cours') + 1
-    for row in range(2, nbr_prof + 2):
-        cell = sheet.cell(row=row, column=col_liberation)
-        cell.number_format = '0.0%'
-
-    # Ajout du résumé sous le tableau
-    resume_row = nbr_prof + 2 # Première ligne après les données des profs
-    
-    # Titres des cours
-    for j in range(nbr_cours):
-        cell = sheet.cell(row=resume_row, column=j+2, value=str(list_cours[j]))
-        cell.border = thin_border
-
-    # "Commande" - nombre de groupes à assigner par cours
-    sheet.cell(row=resume_row+1, column=1, value="Commande").border = thin_border
-    for j in range(nbr_cours):
-        cell = sheet.cell(row=resume_row+1, column=j+2, value=int(groupes_cours[j]))
-        cell.border = thin_border
-    
-    # "Assignés" - nombre de groupes réellement assignés par cours
-    sheet.cell(row=resume_row+2, column=1, value="Assignés").border = thin_border
-    for j in range(nbr_cours):
-        assigned = int(sum(x_output[i,j] for i in range(nbr_prof)))
-        cell = sheet.cell(row=resume_row+2, column=j+2, value=assigned)
-        cell.border = thin_border
-    
-    # Ligne "Nbr. Étud." - nombre d'étudiants par cours
-    sheet.cell(row=resume_row+3, column=1, value="Nbr. Étud.").border = thin_border
-    for j in range(nbr_cours):
-        cell = sheet.cell(row=resume_row+3, column=j+2, value=etudiants_cours[j])
-        cell.border = thin_border
-    
-    # Ligne "Per/sem" - nombre de périodes par semaine par cours
-    sheet.cell(row=resume_row+4, column=1, value="Pér./sem.").border = thin_border
-    for j in range(nbr_cours):
-        cell = sheet.cell(row=resume_row+4, column=j+2, value=int(periodes_cours[j]))
-        cell.border = thin_border
-
-    # Ajout des statistiques sur les préférences (2 colonnes à droite du tableau principal)
-    stats_col = len(df_tache.columns) + 2
-    
-    # Statistiques
-    stats = [
-        ("Moy. pénal.", round(np.mean(pref_pond_heure_values), 2)),
-        ("É.-t. pénal.", round(np.std(pref_pond_heure_values), 2)),
-        ("Min. préf", round(np.min(pref_pond_heure_values), 2)),
-        ("", ""), # Ligne vide
-        ("Prof à 1 prép", sum(1 for val in nbr_prep_values if val == 1)),
-        ("Prof à 4 gr.", sum(1 for val in nbr_gr_values if val >= 4)),
-        ("Prof à 15 h.", sum(1 for val in nbr_heures_values if val >= 15)),
-        ("Tot. satisfaits", sum(1 for val in pref_pond_heure_values if val == 1)),
-        ("", ""), # Ligne vide
-        ("CI Moy.", round(np.mean(ci_pleine_values), 2)),
-        ("CI É.-t.", round(np.std(ci_pleine_values), 2)),
-        ("CI Min", round(np.min(ci_pleine_values), 2)),
-        ("CI Max", round(np.max(ci_pleine_values), 2)),
-        ("sCI/40", round(sum(ci_values)/40, 2)),
-        ("CI Année Moy.", round(np.mean(ci_annee_values), 2)),
-        ("CI Année É.-t.", round(np.std(ci_annee_values), 2)),
-        ("CI Année Min", round(np.min(ci_annee_values), 2)),
-        ("CI Année Max", round(np.max(ci_annee_values), 2)),
-    ]
-    
-    # Écrire les statistiques dans la feuille Excel
-    for i, (label, value) in enumerate(stats, start=2):
-        if label: # Ignorer les lignes vides
-            sheet.cell(row=i, column=stats_col, value=label).border = thin_border
-            sheet.cell(row=i, column=stats_col + 1, value=value).border = thin_border
-
-
-    # Message d'avertissement si la tâche n'est pas optimale
-    if prob.sol_status == pl.LpSolutionIntegerFeasible: # Tâche réalisable mais pas optimale
-        warning_cell = sheet.cell(row=resume_row + 1, column=stats_col - 6, value="Attention : tâche non optimale")
-        warning_cell.font = Font(color="FF0000", bold=True) # Rouge et gras
-
-    # Centrer le contenu de la feuille de calcul
-    for row in sheet.iter_rows():
-        for cell in row:
-            cell.alignment = Alignment(horizontal="center", vertical="center")
-    
-    # Écrire les titres des cours à la verticale (dans la première ligne)
-    for cell in sheet[1]:
-        cell.alignment = Alignment(textRotation=90, horizontal="center", vertical="center")
-    sheet.row_dimensions[1].height = 80
-    
-    # Écrire les titres des cours à la verticale (dans le résumé)
-    for j in range(nbr_cours):
-        cell = sheet.cell(row=resume_row, column=j+2)
-        cell.alignment = Alignment(textRotation=90, horizontal="center", vertical="center")
-    sheet.row_dimensions[resume_row].height = 60
-
-    # Auto-ajustement de la largeur des colonnes (exclure la première ligne avec texte vertical)
-    for column in sheet.columns:
-        column_letter = column[0].column_letter
-        # Calculer la largeur basée sur le contenu des cellules
-        max_length = max(
-            (len(str(cell.value)) for cell in column[1:] if cell.value),
-            default=0
-        )
-        # Limiter la largeur: minimum 8, maximum 15 pour éviter les colonnes trop larges
-        sheet.column_dimensions[column_letter].width = max(min(max_length + 2, 15), 8)
-    
-    # Affiche la préférence moyenne et min dans le terminal
-    print()
-    print(f"Tâche {numero_tache + 1}")
-    print(f"Préférence moyenne: {np.mean(pref_pond_heure_values):.4f}")
-    print(f"Préférence minimum: {np.min(pref_pond_heure_values):.2f}")
-    print()
-
-#################################################
-# Résolution du problème de programmation linéaire
-#################################################
-
-#-----------------------------------------------
-# Afficher un message d'information
-#-----------------------------------------------
 
 SEP = "-" * 95
+
+
 def aff_msg(msg):
-    print(f"\n{SEP}\n\n{msg}\n\n{SEP}")
+    print(f"\n{SEP}\n\n{msg}\n\n{SEP}\n")
 
-#-----------------------------------------------
-# Sélection et paramètres du solveur
-#-----------------------------------------------
 
-# Highs utilisé par défaut - Attention à installer les dépendances nécessaires, python -m pip install pulp[highs]
-solver = pl.HiGHS(timeLimit=solver_time_limit, log_to_console = print_solver_log, log_file = solver_log_file, gapRel = solver_gap)
+#################################################
+# Fonction principale
+#################################################
 
-#-----------------------------------------------
-# Résolution et création du fichier de sortie Excel
-#-----------------------------------------------
 
-# Vérifier si le fichier de sortie existe déjà et numéroter le nouveau si nécessaire
-result_file = os.path.join(os.getcwd(), output_file + '.xlsx')
-nbr_file = 1
-while os.path.exists(result_file):
-    result_file = os.path.join(os.getcwd(), f"{output_file}_{nbr_file}.xlsx")
-    nbr_file += 1
+def main():
 
-aff_msg(f"Le résultat sera enregistré dans le fichier Excel : {os.path.basename(result_file)}")
+    aff_msg("Générateur de tâches - v0.3")
 
-with pd.ExcelWriter(result_file, engine="openpyxl") as writer:
+    #################################################
+    # Chargement des paramètres depuis le fichier YAML
+    #################################################
 
-    def abort(msg): # Affiche un message et arrête le processus
-        aff_msg(msg)
-        writer._save = lambda: None
-        raise SystemExit(0)
+    ryaml = YAML()
+    with open("config.yaml", "r", encoding="utf-8") as f:
+        config = ryaml.load(f)
 
-    # Si l'optimisation lexicographique est activée, on maximise d'abord la préférence minimale
-    if lexicographic_optimization:
-        if min_lexico != 0: # Si on veut que la préférence minimale soit fixée manuellement à au moins min_lexico
-            prob += min_pref_value >= min_lexico # Maintient le minimum défini manuellement
+    # -----------------------------------------------
+    # Gestion des fichiers
+    # -----------------------------------------------
 
+    # Fichiers d'entrée/sortie
+    input_file = config["fichiers"]["entree"]
+    output_file = config["fichiers"]["sortie"]
+
+    # -----------------------------------------------
+    # Paramètres d'optimisation
+    # -----------------------------------------------
+
+    # Pré-optimisations
+    ordre_preopti = config["optimisation"]["preoptimisations"]
+    min_lexico = config["optimisation"]["seuil_prof_min"]
+    nbr_prof_satisf = config["optimisation"]["seuil_nbr_satisfaits"]
+
+    # Ne pas autoriser les préférences négatives
+    disable_negative_preferences = config["optimisation"]["exclure_preferences_negatives"]
+
+    # Nombre maximum d'heures de cours par prof
+    max_hours = config["optimisation"]["nbr_heures_max"]
+
+    # -----------------------------------------------
+    # Paramètres pour la génération de tâches alternatives
+    # -----------------------------------------------
+
+    # Nombre de tâches supplémentaires à générer
+    nbr_taches_alternatives = config["taches_alternatives"]["nbr_taches_alternatives"]
+    # Facteur de diversité
+    diversite_facteur = config["taches_alternatives"]["diversite"]
+
+    # -----------------------------------------------
+    # Log
+    # -----------------------------------------------
+
+    # Sauvegarder le log dans un fichier
+    solver_log_file = config["log"]["fichier_log"] if config["log"]["sauvegarder_log"] else None
+    if solver_log_file:
+        logger = Tee(solver_log_file)
+        sys.stdout = logger
+        sys.stderr = logger
+
+    # -----------------------------------------------
+    # Paramètres du solveur - Non exposés dans le fichier de configuration YAML
+    # -----------------------------------------------
+
+    # Limite de temps pour le solveur en secondes
+    solver_time_limit = 1000
+    # Tolérance pour le solveur
+    solver_gap = 0.0001
+
+    #################################################
+    # Chargement des données depuis le fichier Excel
+    #################################################
+
+    # Fonction de chargement des données depuis le fichier Excel
+    def load_data(tache_file):
+        if not os.path.exists(tache_file):
+            print("Erreur : le fichier d'entrée n'existe pas.")
+            raise SystemExit(1)
+
+        # Charge les feuilles du fichier Excel de paramètres au format xls
+        dfs = pd.read_excel(tache_file, sheet_name=["PROF", "COURS", "PREF", "MAX_NB_GR", "ATTRIB_PREALABLE"], header=None, engine="xlrd")  # Changer pour openpyxl si le fichier est en .xlsx
+
+        df_prof = dfs["PROF"]
+        # Emplacement des infos sur la page PROF (attention l'indexation commence à 0)
+        CELL_NBR_PROF = (0, 0)  # Cellule contenant le nombre de professeurs
+        COL_NOM_PROF = 0  # Colonne contenant les noms des professeurs
+        COL_LIBERATION = 1  # Colonne contenant le % de tâche travaillée
+        COL_CI_CIBLE = 2  # Colonne contenant la CI cible
+        COL_TOL_INF = 3  # Colonne contenant la CI min
+        COL_TOL_SUP = 4  # Colonne contenant la CI max
+        COL_PREP_MIN = 5  # Colonne contenant le nombre minimum de préparations
+        COL_PREP_MAX = 6  # Colonne contenant le nombre maximum de préparations
+        COL_GR_MAX = 7  # Colonne contenant le nombre maximum de groupes
+        COL_CI_ANT = 10  # Colonne contenant la CI antérieure
+
+        # Extraction des données de la page PROF
+        nbr_prof = int(df_prof.iat[CELL_NBR_PROF])
+        list_prof = df_prof.iloc[1 : nbr_prof + 1, COL_NOM_PROF].astype(str).tolist()
+        liberation_prof = df_prof.iloc[1 : nbr_prof + 1, COL_LIBERATION].astype(float).tolist()
+        ci_min = (df_prof.iloc[1 : nbr_prof + 1, COL_CI_CIBLE] - df_prof.iloc[1 : nbr_prof + 1, COL_TOL_INF]).astype(float).tolist()
+        ci_max = (df_prof.iloc[1 : nbr_prof + 1, COL_CI_CIBLE] + df_prof.iloc[1 : nbr_prof + 1, COL_TOL_SUP]).astype(float).tolist()
+        prep_min = df_prof.iloc[1 : nbr_prof + 1, COL_PREP_MIN].astype(int).tolist()
+        prep_max = df_prof.iloc[1 : nbr_prof + 1, COL_PREP_MAX].astype(int).tolist()
+        gr_max = df_prof.iloc[1 : nbr_prof + 1, COL_GR_MAX].astype(int).tolist()
+        ci_ant = df_prof.iloc[1 : nbr_prof + 1, COL_CI_ANT].astype(float).tolist()
+
+        df_cours = dfs["COURS"]
+        # Emplacement des infos sur la page COURS (attention l'indexation commence à 0)
+        CELL_NBR_COURS = (0, 0)  # Cellule contenant le nombre de cours
+        COL_NOM_COURS = 0  # Colonne contenant les noms des cours
+        COL_PERIODES = 1  # Colonne contenant le nombre de périodes
+        COL_GROUPES = 2  # Colonne contenant le nombre de groupes
+        COL_ETUDIANTS = 3  # Colonne contenant le nombre d'étudiants
+
+        # Extraction des données de la page COURS
+        nbr_cours = int(df_cours.iat[CELL_NBR_COURS])
+        list_cours = df_cours.iloc[1 : nbr_cours + 1, COL_NOM_COURS].astype(str).tolist()
+        periodes_cours = df_cours.iloc[1 : nbr_cours + 1, COL_PERIODES].astype(int).tolist()
+        groupes_cours = df_cours.iloc[1 : nbr_cours + 1, COL_GROUPES].astype(int).tolist()
+        etudiants_cours = df_cours.iloc[1 : nbr_cours + 1, COL_ETUDIANTS].astype(int).tolist()
+
+        # Extraction des préférences, nombres max de groupes et attributions préalables
+        def lire_valeurs(sheet_name, default_value, sheet_label):
+            df_sheet = dfs[sheet_name]
+            # On ignore la première ligne et la première colonne
+            data = df_sheet.iloc[1:, 1:].fillna(default_value)
+            try:  # On s'assure que les données sont bien des nombres
+                return data.apply(pd.to_numeric, errors="raise").astype(int)
+            except Exception as e:
+                print(f"Présence d'une valeur erronée dans la feuille {sheet_label} : {e}.")
+                raise SystemExit(1)
+
+        pref_data = lire_valeurs("PREF", 2, "PREF")
+        max_nb_gr_data = lire_valeurs("MAX_NB_GR", 5, "MAX_NB_GR")
+        attrib_preal_data = lire_valeurs("ATTRIB_PREALABLE", 0, "ATTRIB_PREALABLE")
+
+        pref_prof = pref_data.iloc[:nbr_prof, :nbr_cours].to_numpy(dtype=int)  # On n'utilise pas .tolist() maintenant afin de pouvoir pré-calculer les préférences pénalisées au carré avec numpy plus tard
+        max_nb_gr = max_nb_gr_data.iloc[:nbr_prof, :nbr_cours].to_numpy(dtype=int).tolist()
+        attrib_preal = attrib_preal_data.iloc[:nbr_prof, :nbr_cours].to_numpy(dtype=int).tolist()
+
+        return {
+            "professors": {
+                "list": list_prof,
+                "nbr": nbr_prof,
+                "liberation": liberation_prof,
+                "ci_min": ci_min,
+                "ci_max": ci_max,
+                "prep_min": prep_min,
+                "prep_max": prep_max,
+                "gr_max": gr_max,
+                "ci_ant": ci_ant,
+            },
+            "courses": {"list": list_cours, "nbr": nbr_cours, "periodes": periodes_cours, "groupes": groupes_cours, "etudiants": etudiants_cours},
+            "preferences": {"prof": pref_prof, "max_nb_gr": max_nb_gr, "attrib_preal": attrib_preal},
+        }
+
+    # Chargement des données
+    data = load_data(input_file)
+
+    # Extraction des données
+    nbr_prof = data["professors"]["nbr"]
+    list_prof = data["professors"]["list"]
+    liberation_prof = data["professors"]["liberation"]
+    ci_min = data["professors"]["ci_min"]
+    ci_max = data["professors"]["ci_max"]
+    prep_min = data["professors"]["prep_min"]
+    prep_max = data["professors"]["prep_max"]
+    gr_max = data["professors"]["gr_max"]
+    ci_ant = data["professors"]["ci_ant"]
+
+    nbr_cours = data["courses"]["nbr"]
+    list_cours = data["courses"]["list"]
+    periodes_cours = data["courses"]["periodes"]
+    groupes_cours = data["courses"]["groupes"]
+    etudiants_cours = data["courses"]["etudiants"]
+
+    pref_prof = data["preferences"]["prof"]
+    max_nb_gr = data["preferences"]["max_nb_gr"]
+    attrib_preal = data["preferences"]["attrib_preal"]
+
+    # Validations
+    for i in range(nbr_prof):
+        for j in range(nbr_cours):
+            # Validation des préférences
+            if pref_prof[i, j] < -2 or pref_prof[i, j] > 2:
+                print(f"Erreur : la préférence de {list_prof[i]} pour le cours {list_cours[j]} ({pref_prof[i, j]}) n'est pas dans l'intervalle [-2, 2].")
+                raise SystemExit(1)
+
+            # Validation des nombres de groupes max
+            if max_nb_gr[i][j] < 0:
+                print(f"Erreur : le nombre maximum de groupes de {list_prof[i]} pour le cours {list_cours[j]} ({max_nb_gr[i][j]}) est négatif.")
+                raise SystemExit(1)
+
+            # Validation des attributions préalables
+            nb_groupes = attrib_preal[i][j]
+            if nb_groupes < 0:
+                print(f"Erreur : l'attribution préalable de {list_prof[i]} pour le cours {list_cours[j]} ({nb_groupes}) est négative.")
+                raise SystemExit(1)
+
+            if nb_groupes > max_nb_gr[i][j]:
+                print(f"Erreur : l'attribution préalable de {list_prof[i]} pour le cours {list_cours[j]} ({nb_groupes}) dépasse son maximum souhaité ({max_nb_gr[i][j]}).")
+                raise SystemExit(1)
+
+            if disable_negative_preferences and pref_prof[i, j] < 0 and nb_groupes > 0:
+                print(f"Erreur : l'attribution préalable de {list_prof[i]} pour le cours {list_cours[j]} ({nb_groupes}) entre en conflit avec sa préférence négative et l'option d'exclure les préférences négatives.")
+                raise SystemExit(1)
+
+    # Validation des attributions préalables et du nombre de groupes disponibles pour chaque cours
+    for j in range(nbr_cours):
+        total_attrib = sum(attrib_preal[i][j] for i in range(nbr_prof))
+        if total_attrib > groupes_cours[j]:
+            print(f"Erreur : les attributions préalables pour le cours {list_cours[j]} ({total_attrib}) dépassent le nombre de groupes disponibles ({groupes_cours[j]}).")
+            raise SystemExit(1)
+
+    #################################################
+    # Calcul des tâches valides pour chaque professeur
+    #################################################
+
+    # -----------------------------------------------
+    # Calcul des pénalités au carré
+    # -----------------------------------------------
+
+    # Pré-calcul des préférences pénalisées au carré pour tous les (i,j)
+    pref_matrix = np.array(1 - (2 - pref_prof) ** 2 / 12 - (2 - pref_prof) / 6, dtype=float).tolist()
+
+    # -----------------------------------------------
+    # Calcul de la CI
+    # -----------------------------------------------
+
+    def calcul_ci(h_prep, h_cours, nes, pes, nbr_prep):
+        if nbr_prep == 3:
+            facteur_prep = 1.1
+        elif nbr_prep >= 4:
+            facteur_prep = 1.75
         else:
-            prob += min_pref_value # Le minimum devient la priorité de l'optimisation (remplace l'ancienne fonction objectif)
-            prob.solve(solver) # Résoudre afin de maximiser le minimum
-            
-            if prob.sol_status not in (pl.LpSolutionOptimal, pl.LpSolutionIntegerFeasible):
-                abort("Aucune solution réalisable trouvée pour maximiser la préférence minimale. Arrêt du processus.")
-            
-            if prob.sol_status == pl.LpSolutionIntegerFeasible:
-                aff_msg("Attention: le solveur n'a pas eu le temps de trouver le minimum optimal.")
+            facteur_prep = 0.9
 
-            best_min = pl.value(prob.objective) # Sauvegarder le minimum optimal pour la suite
+        ci = facteur_prep * h_prep + 1.2 * h_cours
+        if nes >= 75:
+            ci += 0.01 * nes
+            if nes >= 161:
+                ci += 0.1 * (nes - 160) ** 2
+        if pes >= 416:
+            ci += 0.04 * 415 + 0.07 * (pes - 415)
+        else:
+            ci += 0.04 * pes
+        return ci
 
-            if probleme_exact: # Inutile de l'afficher pour le problème approché, cette valeur n'a alors pas de signification satisfaisante
+    # -----------------------------------------------
+    # Calcul des tâches valides pour chaque professeur
+    # -----------------------------------------------
+
+    # Tolérance pour les comparaisons de nombres flottants afin de ne pas manquer de tâches valides
+    TOLERANCE = 1e-9
+
+    # Nombre de groupes encore disponibles après déduction des attributions préalables
+    groupes_dispo = [groupes_cours[j] - sum(attrib_preal[k][j] for k in range(nbr_prof)) for j in range(nbr_cours)]
+
+    # Calcul pour le prof i des tâches valides respectant les contraintes de nombre de groupes, de nombre préparations et de CI
+    def calcul_taches_prof(i):
+        # Indices des cours que le prof i n'a pas exclus
+        if disable_negative_preferences:
+            cours_indices = [j for j in range(nbr_cours) if max_nb_gr[i][j] > 0 and pref_prof[i, j] >= 0]
+        else:
+            cours_indices = [j for j in range(nbr_cours) if max_nb_gr[i][j] > 0]
+
+        # Tri des cours par nombre de périodes décroissant pour explorer d'abord les cours les plus longs et potentiellement finir plus vite la recherche
+        cours_indices.sort(key=lambda j: periodes_cours[j], reverse=True)
+
+        # Attributions préalables
+        preal_distribution = [attrib_preal[i][j] for j in range(nbr_cours)]
+        preal_k = sum(preal_distribution)
+
+        # On commence à k = preal_k car on ne peut pas attribuer moins de groupes que ceux imposés par attrib_preal
+        start_k = max(1, preal_k)
+
+        # Si les attributions préalables dépassent le nombre de groupes possibles, on retourne une liste vide
+        # Non nécessaire car on a déjà validé les attributions préalables précédemment
+        # for j in range(nbr_cours):
+        #     if preal_distribution[j] > min(max_nb_gr[i][j], groupes_cours[j]):
+        #         return []
+
+        groupes_actuels = list(preal_distribution)  # On copie la distribution initiale afin de pouvoir la modifier dans la suite
+
+        # Calcul des informations initiales liées aux attributions préalables afin de démarrer la récursion
+        initial_nbr_prep = sum(1 for j in range(nbr_cours) if groupes_actuels[j] > 0)
+        initial_heures_prep = sum(periodes_cours[j] for j in range(nbr_cours) if groupes_actuels[j] > 0)
+        initial_heures_cours = sum(periodes_cours[j] * groupes_actuels[j] for j in range(nbr_cours))
+        initial_nes = sum(etudiants_cours[j] * groupes_actuels[j] for j in range(nbr_cours))
+        initial_pes = sum(periodes_cours[j] * etudiants_cours[j] * groupes_actuels[j] for j in range(nbr_cours))
+
+        # Calcul de la CI pour les attributions préalables
+        initial_ci = calcul_ci(initial_heures_prep, initial_heures_cours, initial_nes, initial_pes, initial_nbr_prep)
+
+        # Si les attributions préalables dépassent les contraintes, on retourne une liste vide
+        if initial_ci > ci_max[i] + TOLERANCE or initial_heures_cours > max_hours or initial_nbr_prep > prep_max[i] or preal_k > gr_max[i]:
+            return []
+
+        # Calcul de la préférence initiale pour les attributions préalables
+        initial_pref_score = sum(pref_matrix[i][j] * groupes_actuels[j] * periodes_cours[j] for j in cours_indices)
+
+        # Calcul du nombre de cours éligibles pour le prof i
+        nb_cours_eligibles = len(cours_indices)
+
+        # Calcul du nombre maximum de groupes de chaque cours que l'on peut encore ajouter pour chaque cours
+        ajouts_max_par_cours = [max(0, min(max_nb_gr[i][j] - preal_distribution[j], groupes_dispo[j])) for j in cours_indices]
+
+        # Liste pour stocker les tâches valides
+        taches_valides = []
+
+        # Fonction pour enregistrer une tâche valide
+        def enregistrer_tache(preference, heures_cours, ci, nb_prep):
+            taches_valides.append(
+                {
+                    "gr_cours": groupes_actuels.copy(),  # Nombre de groupes pour chaque cours
+                    "pref": round(preference / heures_cours, 4),  # On arrondit la préférence moyenne pondérée à 4 décimales pour éviter les problèmes de précision
+                    "ci": round(ci, 2),
+                    "heures_cours": heures_cours,
+                    "nbr_prep": nb_prep,
+                }
+            )
+
+        # Fonction d'exploration
+        def explorer_taches(index, nb_groupes, nb_prep, heures_prep, heures_cours, nb_etudiants, periodes_etudiants, ci_actuelle, preference):
+            # index : l'indice du cours actuel dans la liste des cours éligibles
+            # nb_groupes : le nombre total de groupes attribués jusqu'à présent
+            # nb_prep : le nombre total de préparations attribuées jusqu'à présent
+            # heures_prep : le nombre total d'heures de préparation attribuées jusqu'à présent
+            # heures_cours : le nombre total d'heures de cours attribuées jusqu'à présent
+            # nb_etudiants : le nombre total d'étudiants attribués jusqu'à présent
+            # periodes_etudiants : le nombre total de périodes-étudiants attribuées jusqu'à présent
+            # ci_actuelle : la CI jusqu'à présent
+            # preference : la préférence (pas encore divisée par le nombre d'heures) jusqu'à présent
+
+            # Condition d'arrêt : on arrive à la fin de la liste des cours éligibles
+            if index == nb_cours_eligibles:
+                # Si la tâche actuelle respecte les contraintes, on l'ajoute à la liste des tâches valides. Pas besoin de bornes sup, elles sont déjà imposées par la récursion
+                if nb_groupes >= start_k and nb_prep >= prep_min[i] and ci_actuelle >= ci_min[i] - TOLERANCE:
+                    enregistrer_tache(preference, heures_cours, ci_actuelle, nb_prep)
+                return
+
+            # Nombre de cours qu'il reste à explorer dans cette branche
+            cours_restants = nb_cours_eligibles - index
+
+            # Si, en ajoutant une nouvelle préparation pour chaque cours restant on n'atteint pas le min de prep requis, on arrête
+            if nb_prep + cours_restants < prep_min[i]:
+                return
+
+            # Si le prof a déjà atteint son nombre maximum de groupes ou d'heures, on arrête
+            if nb_groupes >= start_k and (nb_groupes == gr_max[i] or heures_cours == max_hours):
+                if nb_prep >= prep_min[i] and ci_actuelle >= ci_min[i] - TOLERANCE:
+                    enregistrer_tache(preference, heures_cours, ci_actuelle, nb_prep)
+                return
+
+            # On récupère le prochain cours à explorer
+            j = cours_indices[index]
+
+            # On calcule le nombre maximum de groupes que l'on peut encore ajouter pour ce cours
+            heures_restantes = max_hours - heures_cours
+            max_groupes_heures = heures_restantes // periodes_cours[j]
+            max_groupes_ajoutables = min(ajouts_max_par_cours[index], gr_max[i] - nb_groupes, max_groupes_heures)
+
+            # Si le prof n'a pas d'attribution préalable pour ce cours et qu'il a déjà atteint son nombre maximum de préparations, on ne peut pas ajouter ce cours
+            if preal_distribution[j] == 0 and nb_prep >= prep_max[i]:
+                max_groupes_ajoutables = 0
+
+            # On explore toutes les possibilités d'ajouts de groupes pour ce cours
+
+            # 0 groupe ajouté pour ce cours, on passe au cours suivant
+            explorer_taches(index + 1, nb_groupes, nb_prep, heures_prep, heures_cours, nb_etudiants, periodes_etudiants, ci_actuelle, preference)
+
+            # 1 groupe ou plus
+            for nb_groupes_ajoutes in range(1, max_groupes_ajoutables + 1):
+                # Détermine si l'ajout de ces groupes pour ce cours donne une nouvelle préparation
+                bool_nouvelle_prep = 1 if (preal_distribution[j] == 0) else 0
+
+                # On calcule les nouvelles valeurs après l'ajout de ces groupes
+                nouveau_nb_prep = nb_prep + bool_nouvelle_prep
+                nouveau_heures_prep = heures_prep + (periodes_cours[j] * bool_nouvelle_prep)
+                nouveau_heures_cours = heures_cours + (periodes_cours[j] * nb_groupes_ajoutes)
+                nouveau_nb_etudiants = nb_etudiants + (etudiants_cours[j] * nb_groupes_ajoutes)
+                nouveau_periodes_etudiants = periodes_etudiants + (periodes_cours[j] * etudiants_cours[j] * nb_groupes_ajoutes)
+                nouveau_ci = calcul_ci(nouveau_heures_prep, nouveau_heures_cours, nouveau_nb_etudiants, nouveau_periodes_etudiants, nouveau_nb_prep)
+
+                # Si la nouvelle CI dépasse la CI max, on arrête l'exploration pour ce cours
+                if nouveau_ci > ci_max[i] + TOLERANCE:
+                    break
+
+                # Sinon on ajoute les groupes pour ce cours et on continue l'exploration
+                groupes_actuels[j] += nb_groupes_ajoutes
+                explorer_taches(index + 1, nb_groupes + nb_groupes_ajoutes, nouveau_nb_prep, nouveau_heures_prep, nouveau_heures_cours, nouveau_nb_etudiants, nouveau_periodes_etudiants, nouveau_ci, preference + (pref_matrix[i][j] * nb_groupes_ajoutes * periodes_cours[j]))
+
+                # On retire les groupes ajoutés pour ce cours pour revenir à l'état précédent
+                groupes_actuels[j] -= nb_groupes_ajoutes
+
+        # Lancement de la récursion
+        explorer_taches(0, preal_k, initial_nbr_prep, initial_heures_prep, initial_heures_cours, initial_nes, initial_pes, initial_ci, initial_pref_score)
+
+        return taches_valides
+
+    # On précalcule, pour chaque prof, les tâches valides
+    aff_msg("Pré-calcul des tâches valides pour chaque professeur.")
+    taches_departement = []  # Liste des tâches valides de l'ensemble des professeurs
+    for i in range(nbr_prof):
+        tache_i = calcul_taches_prof(i)
+
+        # Validation: si aucune tâche valide n'existe pour un prof, on retourne une erreur et on arrête le programme
+        if not tache_i:
+            print(f"Erreur : aucune tâche valide n'existe pour {list_prof[i]}. Vérifiez les paramètres de la tâche.")
+            raise SystemExit(1)
+
+        if len(tache_i) >= 2:
+            print(f"{list_prof[i]} : {len(tache_i)} tâches valides trouvées.")
+        else:
+            print(f"{list_prof[i]} : 1 tâche valide trouvée.")
+
+        taches_departement.append(tache_i)
+
+    #################################################
+    # Définition du problème de programmation linéaire
+    #################################################
+
+    # -----------------------------------------------
+    # Création du problème et des variables de décision
+    # -----------------------------------------------
+
+    # Création du problème
+    prob = pl.LpProblem("probleme_tache", pl.LpMaximize)
+
+    # Variables de décision est_attrib[(i, c)] : la tâche c est-elle attribuée au prof i (1 si oui, 0 sinon)
+    est_attrib = pl.LpVariable.dicts("est_attrib", ((i, c) for i in range(nbr_prof) for c in range(len(taches_departement[i]))), cat="Binary")
+
+    # -----------------------------------------------
+    # Contraintes d'optimisation
+    # -----------------------------------------------
+
+    # Chaque prof doit recevoir exactement une tâche
+    for i in range(nbr_prof):
+        prob += pl.lpSum([est_attrib[(i, c)] for c in range(len(taches_departement[i]))]) == 1
+
+    # Tous les groupes de tous les cours doivent être attribués
+    for j in range(nbr_cours):
+        prob += pl.lpSum([est_attrib[(i, c)] * taches_departement[i][c]["gr_cours"][j] for i in range(nbr_prof) for c in range(len(taches_departement[i]))]) == groupes_cours[j]
+
+    # -----------------------------------------------
+    # Fonction objectif principale
+    # -----------------------------------------------
+
+    # On maximise la somme des préférences moyennes pondérées
+    objective_fct = pl.lpSum([est_attrib[(i, c)] * taches_departement[i][c]["pref"] for i in range(nbr_prof) for c in range(len(taches_departement[i]))])
+
+    #################################################
+    # Préparation des données de sortie
+    #################################################
+
+    # Variables de sortie
+    x_output = np.zeros((nbr_prof, nbr_cours), dtype=int)  # Nombres de groupes pour chaque prof et chaque cours
+    ci_output = np.zeros(nbr_prof, dtype=float)  # CI pour chaque prof
+    hc_output = np.zeros(nbr_prof, dtype=int)  # Nombre d'heures de cours pour chaque prof
+    nbr_prep_output = np.zeros(nbr_prof, dtype=int)  # Nombre de préparations pour chaque prof
+    pref_output = np.zeros(nbr_prof, dtype=float)  # Préférence moyenne pondérée pour chaque prof
+
+    def output_values():  # On remplit les variables de sortie à partir des valeurs des variables de décision
+        x_output.fill(0)
+
+        for i in range(nbr_prof):
+            for c in range(len(taches_departement[i])):
+                if round(est_attrib[(i, c)].varValue) == 1:  # round pour éviter les problèmes de précision du solveur
+                    current_tache = taches_departement[i][c]
+
+                    ci_output[i] = current_tache["ci"]
+                    hc_output[i] = current_tache["heures_cours"]
+                    nbr_prep_output[i] = current_tache["nbr_prep"]
+                    pref_output[i] = current_tache["pref"]
+
+                    for j in range(nbr_cours):
+                        groups = current_tache["gr_cours"][j]
+                        x_output[i, j] = groups
+                    break  # Une seule tâche est attribuée par prof, on peut donc sortir de la boucle dès qu'on en trouve une
+
+    #################################################
+    # Exportation des résultats dans un fichier Excel
+    #################################################
+
+    # Fonction d'exportation des résultats dans un fichier Excel
+    def save_excel_file(writer, numero_tache):  # Exportation des résultats dans un fichier Excel comme nouvelle feuille
+        output_values()  # Valeurs de sortie à partir des variables de décision
+
+        # Création du DataFrame
+        df_tache = pd.DataFrame(x_output, columns=list_cours)
+
+        # Infos
+        df_tache.insert(0, "Prof.", list_prof)
+        df_tache["% cours"] = liberation_prof
+        df_tache["CI Cours"] = ci_output
+        df_tache["CI Pleine"] = ci_output + 40 * (1 - np.array(liberation_prof))
+        df_tache["CI Année"] = np.array(ci_ant) + df_tache["CI Pleine"]
+        df_tache["Nbr. Prép."] = nbr_prep_output
+        df_tache["Nbr. Groupes"] = x_output.sum(axis=1)
+        df_tache["Nbr. Périodes"] = hc_output
+        df_tache["Préf."] = np.round(pref_output, 2)
+
+        # Nom de la feuille Excel. "1" pour la première, "2", "3", etc. pour les alternatives
+        sheet_name = str(numero_tache + 1)
+
+        # Mise en forme et enregistrement du fichier Excel
+        df_tache.to_excel(writer, sheet_name=sheet_name, index=False)
+        sheet = writer.sheets[sheet_name]
+
+        # On définit le style de bordures
+        if "thin_border" not in writer.book.style_names:
+            thin_border = NamedStyle(name="thin_border")
+            thin_border.border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
+            writer.book.add_named_style(thin_border)
+
+        # On définit les couleurs et les alignements utilisés
+        couleur_m1 = PatternFill(start_color="D3D3D3", end_color="D3D3D3", fill_type="solid")
+        couleur_m2 = PatternFill(start_color="5A5A5A", end_color="5A5A5A", fill_type="solid")
+        center_alignment = Alignment(horizontal="center", vertical="center")
+        vertical_alignment = Alignment(textRotation=90, horizontal="center", vertical="center")
+
+        # Nombre de colonnes dans le tableau principal
+        num_cols = len(df_tache.columns)  # Nombre de colonnes dans le tableau principal
+
+        # On récupère l'index de la colonne "% cours" pour appliquer le format de pourcentage
+        col_liberation = df_tache.columns.get_loc("% cours") + 1
+
+        # On collecte les informations du résumé
+        resume_row = nbr_prof + 2
+        resume_data = [("Titres", list_cours), ("Commande", groupes_cours), ("Assignés", [int(sum(x_output[i, j] for i in range(nbr_prof))) for j in range(nbr_cours)]), ("Nbr. Étud.", etudiants_cours), ("Pér./sem.", periodes_cours)]
+
+        # On remplit le résumé
+        for row_offset, (label, values) in enumerate(resume_data):
+            sheet.cell(row=resume_row + row_offset, column=1, value=label).style = "thin_border"
+            sheet.cell(row=resume_row + row_offset, column=1, value=label).alignment = center_alignment
+            for j in range(nbr_cours):
+                sheet.cell(row=resume_row + row_offset, column=j + 2, value=values[j]).style = "thin_border"
+                sheet.cell(row=resume_row + row_offset, column=j + 2, value=values[j]).alignment = center_alignment
+
+        # On collecte les statistiques sur les préférences. Elles sont calculées par rapport aux préférences réellement inscrites dans le fichier Excel (donc arrondies à 2 décimales) alors que les préférences sont à 4 décimales pour l'optimisation
+        stats_col = len(df_tache.columns) + 2
+        stats = [
+            ("Moy. pénal.", round(df_tache["Préf."].mean(), 2)),
+            ("É.-t. pénal.", round(df_tache["Préf."].std(ddof=0), 2)),
+            ("Min. préf.", round(df_tache["Préf."].min(), 2)),
+            ("", ""),
+            ("Prof à 1 prép.", int((df_tache["Nbr. Prép."] == 1).sum())),
+            ("Prof à 4+ gr.", int((df_tache["Nbr. Groupes"] >= 4).sum())),
+            ("Prof à 15+ h.", int((df_tache["Nbr. Périodes"] >= 15).sum())),
+            ("Tot. satisfaits", int((df_tache["Préf."] >= 0.9951).sum())),
+            ("", ""),
+            ("CI Moy.", round(df_tache["CI Pleine"].mean(), 2)),
+            ("CI É.-t.", round(df_tache["CI Pleine"].std(ddof=0), 2)),
+            ("CI Min.", round(df_tache["CI Pleine"].min(), 2)),
+            ("CI Max.", round(df_tache["CI Pleine"].max(), 2)),
+            ("sCI/40", round(ci_output.sum() / 40, 2)),
+            ("CI Année Moy.", round(df_tache["CI Année"].mean(), 2)),
+            ("CI Année É.-t.", round(df_tache["CI Année"].std(ddof=0), 2)),
+            ("CI Année Min.", round(df_tache["CI Année"].min(), 2)),
+            ("CI Année Max.", round(df_tache["CI Année"].max(), 2)),
+        ]
+
+        # On remplit les statistiques
+        for i, (label, value) in enumerate(stats, start=2):
+            if label:
+                sheet.cell(row=i, column=stats_col, value=label).style = "thin_border"
+                sheet.cell(row=i, column=stats_col, value=label).alignment = center_alignment
+                sheet.cell(row=i, column=stats_col + 1, value=value).style = "thin_border"
+                sheet.cell(row=i, column=stats_col + 1, value=value).alignment = center_alignment
+
+        # Message d'avertissement si la tâche n'est pas optimale
+        if prob.sol_status == pl.LpSolutionIntegerFeasible:
+            warning_cell = sheet.cell(row=resume_row + 1, column=stats_col - 6, value="Attention : tâche non optimale")
+            warning_cell.font = Font(color="FF0000", bold=True)  # En rouge et gras
+
+        # On applique les bordures et l'alignement pour le tableau principal
+        for row in sheet.iter_rows(min_row=1, max_row=nbr_prof + 1, min_col=1, max_col=num_cols):
+            for cell in row:
+                cell.style = "thin_border"
+                cell.alignment = vertical_alignment if cell.row == 1 else center_alignment
+
+        # On applique le format de pourcentage à la colonne "% cours"
+        for r in range(2, nbr_prof + 2):
+            sheet.cell(row=r, column=col_liberation).number_format = "0.0%"
+
+        # On applique l'alignement vertical pour la ligne de résumé
+        for c in range(2, nbr_cours + 2):
+            sheet.cell(row=resume_row, column=c).alignment = vertical_alignment
+
+        # On applique les couleurs pour les préférences négatives dans le tableau principal
+        for i in range(nbr_prof):
+            for j in range(nbr_cours):
+                if x_output[i, j] > 0:
+                    pref = pref_prof[i, j]
+                    if pref == -1:
+                        sheet.cell(row=i + 2, column=j + 2).fill = couleur_m1
+                    elif pref == -2:
+                        sheet.cell(row=i + 2, column=j + 2).fill = couleur_m2
+
+        # On ajuste la hauteur de la première ligne et de la ligne de résumé
+        sheet.row_dimensions[1].height = 80
+        sheet.row_dimensions[resume_row].height = 60
+
+        # Auto-ajustement de la largeur des colonnes (en excluant la première ligne avec texte vertical)
+        for column in sheet.columns:
+            column_letter = column[0].column_letter
+            max_length = max((len(str(cell.value)) for cell in column[1:] if cell.value), default=0)
+            sheet.column_dimensions[column_letter].width = max(min(max_length + 2, 15), 8)
+
+        # On affiche la préférence moyenne et min dans le terminal, calculées à partir des préférences arrondies à 4 décimales issues de l'optimisation
+        print()
+        print(f"Tâche {numero_tache + 1}")
+        print(f"Préférence moyenne : {pref_output.mean():.4f}")
+        print(f"Préférence minimum : {pref_output.min():.2f}")
+        print()
+
+    #################################################
+    # Résolution du problème de programmation linéaire
+    #################################################
+
+    # -----------------------------------------------
+    # Paramètres du solveur HiGHS
+    # -----------------------------------------------
+
+    # On extrait les messages de HiGHS et les affiche dans le terminal
+    def highs_log_callback(callback_type, message, data_out, data_in, user_data):
+        print(message, end="")
+
+    solver = pl.HiGHS(
+        timeLimit=solver_time_limit,
+        log_to_console=False,
+        gapRel=solver_gap,
+        callbacksToActivate=[highspy.cb.HighsCallbackType.kCallbackLogging],
+        callbackTuple=(highs_log_callback, None),
+    )
+
+    # -----------------------------------------------
+    # Résolution et création du fichier de sortie Excel
+    # -----------------------------------------------
+
+    # On vérifie si le fichier de sortie existe déjà et numéroter le nouveau si nécessaire
+    result_file = os.path.join(os.getcwd(), output_file + ".xlsx")
+    nbr_file = 1
+    while os.path.exists(result_file):
+        result_file = os.path.join(os.getcwd(), f"{output_file}_{nbr_file}.xlsx")
+        nbr_file += 1
+
+    aff_msg(f"Le résultat sera enregistré dans le fichier Excel : {os.path.basename(result_file)}")
+
+    with pd.ExcelWriter(result_file, engine="openpyxl") as writer:
+
+        def abort(msg):  # Affiche un message, sauvegarde le fichier et arrête le processus
+            aff_msg(msg)
+            writer._save = lambda: None
+            raise SystemExit(0)
+
+        # Objectif : maximiser le nombre de profs totalement satisfaits
+        def phase_max_satisf():
+            nonlocal prob
+
+            total_satisf = pl.lpSum([est_attrib[(i, c)] for i in range(nbr_prof) for c in range(len(taches_departement[i])) if taches_departement[i][c]["pref"] >= 0.9951])
+
+            if nbr_prof_satisf != 0:  # Si seuil fixé manuellement
+                prob += total_satisf >= nbr_prof_satisf  # Maintient le seuil défini manuellement
+            else:
+                prob += total_satisf  # Maximiser le nombre de profs totalement satisfaits devient (temporairement) la priorité de l'optimisation
+                prob.solve(solver)  # On résout pour cet objectif temporaire
+
+                if prob.sol_status not in (pl.LpSolutionOptimal, pl.LpSolutionIntegerFeasible):
+                    abort("Aucune solution réalisable trouvée pour maximiser les profs totalement satisfaits. Arrêt du processus.")
+
+                if prob.sol_status == pl.LpSolutionIntegerFeasible:
+                    aff_msg("Attention : le solveur n'a pas eu le temps de trouver le nombre optimal de profs totalement satisfaits.")
+
+                best_count = round(pl.value(prob.objective))  # On sauvegarde le nombre optimal de profs totalement satisfaits pour la suite
+                aff_msg(f"Nombre maximal de profs totalement satisfaits possible : {best_count}")
+
+                prob += total_satisf >= best_count  # On force à maintenir le nombre de profs satisfaits optimal
+
+        # Objectif : maximiser la préférence minimale parmi les profs
+        def phase_lexicographic():
+            nonlocal prob
+
+            # Variable pour stocker la préférence minimale parmi les profs
+            min_pref_value = pl.LpVariable("min_pref_value", lowBound=-1, upBound=1, cat="Continuous")
+
+            for i in range(nbr_prof):
+                prob += min_pref_value <= pl.lpSum([est_attrib[(i, c)] * taches_departement[i][c]["pref"] for c in range(len(taches_departement[i]))])
+
+            if min_lexico != 0:  # Si seuil fixé manuellement
+                prob += min_pref_value >= min_lexico  # Maintient le seuil défini manuellement
+
+            else:
+                prob += min_pref_value  # Le minimum devient (temporairement) la priorité de l'optimisation
+                prob.solve(solver)  # On résout pour cet objectif temporaire
+
+                if prob.sol_status not in (pl.LpSolutionOptimal, pl.LpSolutionIntegerFeasible):
+                    abort("Aucune solution réalisable trouvée pour maximiser la préférence minimale. Arrêt du processus.")
+
+                if prob.sol_status == pl.LpSolutionIntegerFeasible:
+                    aff_msg("Attention : le solveur n'a pas eu le temps de trouver le minimum optimal.")
+
+                best_min = pl.value(prob.objective)  # On sauvegarde le minimum optimal pour la suite
+
                 if prob.sol_status == pl.LpSolutionIntegerFeasible:
                     aff_msg(f"Le meilleur minimum trouvé dans le temps imparti est : {best_min:.2f}")
                 else:
                     aff_msg(f"Il n'existe aucune tâche pour laquelle la préférence minimale est supérieure à : {best_min:.2f}")
 
-            prob += objective_fct # Réintroduire la fonction objectif originale qui maximise la moyenne des préférences
-            prob += min_pref_value >= best_min - abs(best_min) * 0.005 # Ajouter comme contrainte de maintenir le minimum optimum, avec une petite tolérance
+                prob += min_pref_value >= best_min - max(abs(best_min) * 0.01, 1e-3)  # On force à maintenir le minimum optimum, avec une petite tolérance (1%)
 
-    # Résolution et sauvegarde de la première tâche
-    prob.solve(solver)
+        # Exécution des phases de pré-optimisation dans l'ordre configuré dans le fichier YAML
+        phases = {"prof_min": phase_lexicographic, "nbr_satisfaits": phase_max_satisf}
+        for phase_name in ordre_preopti:
+            phases[phase_name]()
 
-    if prob.sol_status not in (pl.LpSolutionOptimal, pl.LpSolutionIntegerFeasible):
-        abort("Aucune solution réalisable trouvée pour la tâche principale. Arrêt du processus.")
+        # On résout et sauvegarde la première tâche (hors pré-optimisations)
+        prob += objective_fct  # On ajoute la fonction objectif principale (moyenne des préférences) au problème (elle remplace les fonctions objectifs temporaires des phases de pré-optimisation si elles ont été exécutées)
+        prob.solve(solver)  # On résout le problème
 
-    if prob.sol_status == pl.LpSolutionIntegerFeasible:
-        aff_msg("Attention : il ne s'agit pas d'une solution optimale.\nIl est déconseillé de générer des tâches alternatives à partir d'une tâche non optimale.")
+        if prob.sol_status not in (pl.LpSolutionOptimal, pl.LpSolutionIntegerFeasible):
+            abort("Aucune solution réalisable trouvée pour la tâche principale. Arrêt du processus.")
 
-    best_obj = pl.value(prob.objective) # Valeur optimale de la fonction objectif
-    save_excel_file(writer, 0) # Sauvegarde la feuille "1"
-    writer.book.save(result_file) # Sauvegarde du fichier Excel
+        if prob.sol_status == pl.LpSolutionIntegerFeasible:
+            aff_msg("Attention : il ne s'agit pas d'une solution optimale.\nIl est déconseillé de générer des tâches alternatives à partir d'une tâche non optimale.")
 
-    # Génération des tâches alternatives si demandé
-    if nbr_taches_alternatives > 0: # Utilise une stratégie d'exclusion: exclure la solution précédente pour trouver une solution alternative différente.
-        # Fonction pour exclure une solution donnée en y
-        def exclure_y(prev_y_dict): # Force au moins un des professeurs à "perdre" au moins un des cours précédemment attribués. Gagner un cours ne suffit pas. Calculatoirement plus simple pour le solveur et force des changements plus importants.
-            s1 = [(i, j) for (i, j), val in prev_y_dict.items() if val == 1]
-            return pl.lpSum(y[(i, j)] for (i, j) in s1) <= len(s1) - diversite_factor
-        
+        save_excel_file(writer, 0)  # On sauvegarde la feuille "1"
+        writer.book.save(result_file)  # On sauvegarde le fichier Excel
+
         # Génération des tâches alternatives
-        for k in range(nbr_taches_alternatives):
-            # Pas besoin de chercher une meilleure solution que la précédente, on sait qu'elle n'existe pas (en tout cas pour une solution optimale)
-            obj_constr = objective_fct <= best_obj + 1e-6
-            prob += obj_constr
+        if nbr_taches_alternatives > 0:
+            # Fonction pour exclure les solutions précédentes. On impose qu'au moins diversite_facteur profs abandonnent au moins un cours qu'ils enseignaient par rapport à toutes les solutions précédentes
+            def exclure_sol():
+                # On identifie, pour chaque prof, les cours qu'il enseignait (donc avec gr_cours > 0) dans la dernière solution générée
+                cours_prec = {}
+                for i in range(nbr_prof):
+                    for c in range(len(taches_departement[i])):
+                        if round(est_attrib[(i, c)].varValue) == 1:
+                            cours_prec[i] = taches_departement[i][c]["gr_cours"]
+                            break
 
-            # Sauvegarder les valeurs de y de la solution précédente afin de l'exclure des tâches alternatives
-            prev_y = {(i, j): get_val(y[(i, j)]) for i in range(nbr_prof) for j in range(nbr_cours)}
+                # On identifie les combinaisons qui impliquent l'abandon complet d'au moins un de ces cours
+                combinaisons_abandon = [(i, c) for i in range(nbr_prof) for c in range(len(taches_departement[i])) if any(prec > 0 and actuel == 0 for prec, actuel in zip(cours_prec[i], taches_departement[i][c]["gr_cours"]))]
 
-            # Exclure cette solution des tâches alternatives
-            prob += exclure_y(prev_y)
-            
-            # Résolution de la tâche alternative
-            prob.solve(solver)
+                # On force qu'au moins diversite_facteur profs abandonnent au moins un cours qu'ils enseignaient dans la dernière solution générée
+                return pl.lpSum([est_attrib[(i, c)] for (i, c) in combinaisons_abandon]) >= diversite_facteur
 
-            if prob.sol_status == pl.LpSolutionOptimal:
-                best_obj = pl.value(prob.objective) # Valeur optimale de la fonction objectif pour la tâche courante. Inutile de la sauvegarder si elle n'est pas optimale, autant réutiliser la valeur précédente
-            elif prob.sol_status == pl.LpSolutionIntegerFeasible:
-                aff_msg("Attention : il ne s'agit pas d'une solution optimale.")
+            # Génération des tâches alternatives
+            for k in range(nbr_taches_alternatives):
+                # On exclut la solution précédente (cumulativement, donc toutes les solutions précédentes sont exclues)
+                prob += exclure_sol()
 
-            # Suppression de la contrainte <= best_obj sur la fonction objectif (sera réintroduite pour la tâche alternative suivante)
-            prob.constraints.pop(obj_constr.name, None)
+                # On résout la tâche alternative
+                prob.solve(solver)
 
-            # Exportation de la solution alternative comme nouvelle feuille
-            if prob.sol_status in (pl.LpSolutionOptimal, pl.LpSolutionIntegerFeasible):
-                save_excel_file(writer, k + 1) # Feuille "2", "3", etc.
-                writer.book.save(result_file) # Sauvegarde du fichier Excel
-            else:
-                aff_msg("Aucune solution réalisable trouvée pour cette tâche alternative. Arrêt de la génération de tâches alternatives.")
-                break
+                if prob.sol_status == pl.LpSolutionIntegerFeasible:
+                    aff_msg("Attention : il ne s'agit pas d'une solution optimale.")
 
-    # On réordonne les feuilles dans le fichier Excel en fonction de la préférence moyenne, puis de la préférence minimum, puis de l'écart-type des préférences
-    wb = writer.book
-    if not wb.sheetnames: # Si aucune feuille n'a été créée, on affiche un message et on empêche la sauvegarde d'un classeur vide
-        abort("Aucun résultat à sauvegarder.\nUn fichier Excel vide a été créé.")
+                # On exporte la solution alternative dans une nouvelle feuille
+                if prob.sol_status in (pl.LpSolutionOptimal, pl.LpSolutionIntegerFeasible):
+                    save_excel_file(writer, k + 1)  # Feuille "2", "3", etc.
+                    writer.book.save(result_file)  # Sauvegarde du fichier Excel
+                else:
+                    aff_msg("Aucune solution réalisable trouvée pour cette tâche alternative. Arrêt de la génération de tâches alternatives.")
+                    break
 
-    else:
+        # On réordonne les feuilles dans le fichier Excel en fonction de la préférence moyenne, puis de la préférence minimum, puis de l'écart-type des préférences
+        wb = writer.book
+        if not wb.sheetnames:  # Si aucune feuille n'a été créée, on affiche un message, on empêche la sauvegarde d'un classeur vide et on quitte
+            abort("Aucun résultat à sauvegarder.\nUn fichier Excel vide a été créé.")
+
+        # Sinon on récupère les statistiques de chaque feuille pour les trier
         mesures = []
         for name in wb.sheetnames:
             ws = wb[name]
@@ -817,15 +832,19 @@ with pd.ExcelWriter(result_file, engine="openpyxl") as writer:
             min_feuille = round(float(ws.cell(row=4, column=stats_val_col).value), 2)
             mesures.append((name, moy_feuille, min_feuille, ecart_feuille))
 
-        # Tri des feuilles
+        # On trie les feuilles selon la préférence moyenne
         ordre = sorted(mesures, key=lambda t: (-t[1], -t[2], t[3]))
         ordre_nom_feuille = [t[0] for t in ordre]
         wb._sheets = [wb[s] for s in ordre_nom_feuille]
 
         # On renomme les feuilles pour que la première soit "1", la deuxième "2", etc.
-        # Utiliser un préfixe temporaire pour éviter les conflits de noms lors du renommage
+        # On utilise un préfixe temporaire pour éviter les conflits de noms lors du renommage
         for idx, sheet in enumerate(wb.worksheets):
             sheet.title = f"_tmp_{idx + 1}"
         for idx, sheet in enumerate(wb.worksheets):
             sheet.title = str(idx + 1)
         wb.active = 0
+
+
+if __name__ == "__main__":
+    main()
